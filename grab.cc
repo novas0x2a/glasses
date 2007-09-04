@@ -8,12 +8,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <cassert>
 
 #include <linux/types.h>
 #include <linux/videodev.h>
 
 using namespace std;
 
+/*{{{ VideoDevice */
 typedef struct video_capability VideoCapability;
 typedef struct video_window     VideoWindow;
 typedef struct video_picture    VideoPicture;
@@ -170,8 +172,15 @@ pair<pair<uint32_t, uint32_t>, uint16_t> VideoDevice::getParams(void)
 
 void VideoDevice::getFrame(char *buf)
 {
-    if (read(dev, buf, width * height * depth) < 0)
+    if (read(dev, buf, width * height * depth/3) < 0)
         throw string("Unable to read from device");
+}
+/*}}}*/
+
+class MainWin {
+    MainWin(uint32_t width, uint32_t height, uint32_t depth);
+    ~MainWin(void);
+    MainLoop(void);
 }
 
 void Run(void)
@@ -181,21 +190,26 @@ void Run(void)
     v.setParams(640,480,VIDEO_PALETTE_RGB24,24);
     cerr << v.getCap() << endl << v.getWin() << endl << v.getPic() << endl;
 
-    sleep(3);
+    sleep(1);
 
-    char *buf = new char[v.width*v.height*v.depth];
+    assert(v.width  == 640);
+    assert(v.height == 480);
+    assert(v.depth  == 24);
+
+    char *buf = new char[v.width*v.height*3];
 
     v.getFrame(buf);
     cout << "P6\n" << v.width << " " << v.height << " 255\n";
 
-    for (uint16_t x = 0; x < v.width; ++x)
-        for (uint16_t y = 0; y < v.height; ++y)
+    for (uint32_t y = 0; y < v.height; ++y)
+        for (uint32_t x = 0; x < v.width; ++x)
         {
-            uint32_t off = x*y*3;
+            uint32_t off = (y*v.width + x) * 3;
             fputc(buf[off],   stdout);
             fputc(buf[off+1], stdout);
             fputc(buf[off+2], stdout);
         }
+
     delete[] buf;
 }
 
