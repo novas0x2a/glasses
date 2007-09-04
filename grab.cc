@@ -2,15 +2,17 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <cassert>
+#include <cmath>
+#include <vector>
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <cassert>
 
 #include <SDL.h>
 
@@ -19,7 +21,7 @@
 
 using namespace std;
 
-/*{{{ VideoDevice */
+/*{{{ Print Overloads */
 typedef struct video_capability VideoCapability;
 typedef struct video_window     VideoWindow;
 typedef struct video_picture    VideoPicture;
@@ -50,9 +52,9 @@ ostream& operator<< (ostream& os, VideoPicture& a) {
         << "] Depth["       << a.depth
         << "] Palette["     << a.palette << "]";
     return os;
-}
+}/*}}}*/
 
-class VideoDevice
+class VideoDevice /*{{{*/
 {
     public:
 
@@ -179,46 +181,64 @@ void VideoDevice::getFrame(char *buf)
     if (read(dev, buf, width * height * depth/3) < 0)
         throw string("Unable to read from device");
 }
+
 /*}}}*/
 
-class MainWin
+typedef void (*FilterFunc)(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth);
+
+class MainWin /*{{{*/
 {
     public:
-        MainWin(uint32_t width, uint32_t height, uint32_t depth);
+        MainWin(uint32_t width, uint32_t height, uint32_t depth, uint8_t windows = 1);
         ~MainWin(void);
         void MainLoop(void);
         void WriteFrame(const string filename, bool newFrame);
+        void AddFilter(FilterFunc f, uint8_t idx);
     private:
         uint32_t width, height, depth;
         SDL_Surface *screen;
         VideoDevice *v;
-        char *framebuf;
+        char **framebuf;
+        uint8_t windows, winside;
+        FilterFunc *funcs;
 };
 
-MainWin::MainWin(uint32_t width, uint32_t height, uint32_t depth) : width(width), height(height), depth(depth)
+MainWin::MainWin(uint32_t width, uint32_t height, uint32_t depth, uint8_t win) : width(width), height(height), depth(depth)
 {
     assert(depth == 24);
+    assert(windows > 0);
 
     v = new VideoDevice("/dev/video0");
 
     v->setParams(width, height, VIDEO_PALETTE_RGB24, depth);
 
-    assert(v->width  == 640);
-    assert(v->height == 480);
-    assert(v->depth  == 24);
+    assert(v->width  == width);
+    assert(v->height == height);
+    assert(v->depth  == depth);
+
+    winside = (uint8_t)ceil(sqrt(win));
+    windows = winside * winside;
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         throw string("Could not init SDL");
 
-    if (!(screen = SDL_SetVideoMode(width, height, depth, SDL_SWSURFACE)))
+    if (!(screen = SDL_SetVideoMode(width*winside, height*winside, depth, SDL_SWSURFACE)))
         throw string("Unable to set video mode: ") + SDL_GetError();
 
-    framebuf = new char[v->width*v->height*3];
+    framebuf    = (char**)malloc(windows * sizeof(char*));
+    framebuf[0] = (char*)malloc(windows * v->width * v->height * v->depth * 3 * sizeof(char));
+    for (uint16_t i = 1; i < windows; ++i)
+        framebuf[i] = framebuf[0] + (i * v->width * v->height * v->depth * 3 * sizeof(char));
+
+    funcs = new FilterFunc[windows];
+    memset(funcs, 0, sizeof(FilterFunc) * windows);
 }
 
 MainWin::~MainWin(void)
 {
-    delete [] framebuf;
+    delete[] funcs;
+    free(framebuf[0]);
+    free(framebuf);
     SDL_FreeSurface(screen);
     SDL_Quit();
 }
@@ -226,15 +246,19 @@ MainWin::~MainWin(void)
 void MainWin::MainLoop(void)
 {
     SDL_Event event;
-    SDL_Surface *frame;
+    SDL_Surface *frame[windows];
     int i = 0;
     ostringstream s;
+    struct timeval t1, t2 = {0,0};
 
-    if (!(frame = SDL_CreateRGBSurfaceFrom(framebuf, v->width, v->height, v->depth, v->width*3, 0, 0, 0, 0)))
-        throw string("CreateSurface failed") + SDL_GetError();
+    for (uint16_t i = 0; i < windows; ++i)
+        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->width, v->height, v->depth, v->width*3, 0, 0, 0, 0)))
+            throw string("CreateSurface failed") + SDL_GetError();
 
     while (1)
     {
+        gettimeofday(&t1, NULL);
+        cerr << 1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0) << endl;
         while(SDL_PollEvent(&event))
         {
             switch(event.type)
@@ -261,15 +285,29 @@ void MainWin::MainLoop(void)
             }
         }
 
-        v->getFrame(framebuf);
+        v->getFrame(framebuf[0]);
 
-        if (SDL_BlitSurface(frame, NULL, screen, NULL) != 0)
+        for (uint16_t i = 1; i < windows; ++i)
+            if (funcs[i])
+            {
+                funcs[i](framebuf[0], framebuf[i], v->width, v->height, v->depth);
+                SDL_Rect r = {i % winside, i / winside, 0, 0};
+                r.x *= width;
+                r.y *= height;
+                if (SDL_BlitSurface(frame[i], NULL, screen, &r) != 0)
+                    throw string("Blit failed") + SDL_GetError();
+            }
+
+        if (SDL_BlitSurface(frame[0], NULL, screen, NULL) != 0)
             throw string("Blit failed") + SDL_GetError();
         SDL_Flip(screen);
 
+        t2.tv_sec  = t1.tv_sec;
+        t2.tv_usec = t1.tv_usec;
     }
 
-    SDL_FreeSurface(frame);
+    for (uint16_t i = 0; i < windows; ++i)
+        SDL_FreeSurface(frame[i]);
 }
 
 void MainWin::WriteFrame(const string filename, bool newFrame)
@@ -277,7 +315,7 @@ void MainWin::WriteFrame(const string filename, bool newFrame)
     ofstream file(filename.c_str(), ios::out|ios::binary);
 
     if (newFrame)
-        v->getFrame(framebuf);
+        v->getFrame(framebuf[0]);
 
     file << "P6\n" << v->width << " " << v->height << " 255\n";
 
@@ -285,18 +323,80 @@ void MainWin::WriteFrame(const string filename, bool newFrame)
         for (uint32_t x = 0; x < v->width; ++x)
         {
             uint32_t off = (y*v->width + x) * 3;
-            file << framebuf[off] << framebuf[off+1] << framebuf[off+2];
+            file << framebuf[0][off] << framebuf[0][off+1] << framebuf[0][off+2];
         }
     file.close();
+}
+
+void MainWin::AddFilter(FilterFunc f, uint8_t idx)
+{
+    if (idx > windows-1)
+        throw string("Illegal filter func index");
+
+    funcs[idx] = f;
+}
+/*}}}*/
+
+void copy(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth)
+{
+    assert(depth == 24);
+    memcpy(out, in, width * height * 3);
+}
+
+void red(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth)
+{
+    assert(depth == 24);
+
+    for (uint32_t y = 0; y < height; ++y)
+        for (uint32_t x = 0; x < width; ++x)
+        {
+            uint32_t off = (y*width + x) * 3;
+            out[off]   = in[off];
+            out[off+1] = 0;
+            out[off+2] = 0;
+        }
+}
+
+void green(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth)
+{
+    assert(depth == 24);
+
+    for (uint32_t y = 0; y < height; ++y)
+        for (uint32_t x = 0; x < width; ++x)
+        {
+            uint32_t off = (y*width + x) * 3;
+            out[off]   = 0;
+            out[off+1] = in[off+1];
+            out[off+2] = 0;
+        }
+}
+
+void blue(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth)
+{
+    assert(depth == 24);
+
+    for (uint32_t y = 0; y < height; ++y)
+        for (uint32_t x = 0; x < width; ++x)
+        {
+            uint32_t off = (y*width + x) * 3;
+            out[off]   = 0;
+            out[off+1] = 0;
+            out[off+2] = in[off+2];
+        }
 }
 
 int main(int argc, char *argv[])
 {
     try {
-        MainWin win(640, 480, 24);
+        MainWin win(320, 240, 24, 3);
+        win.AddFilter(red,   1);
+        win.AddFilter(green, 2);
+        win.AddFilter(blue,  3);
         win.MainLoop();
     } catch (string p) {
         cerr << "Error: " << p << endl;
     }
     return 0;
 }
+
+/* vim: set fdm=marker : */
