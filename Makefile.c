@@ -1,5 +1,3 @@
-CC=g++
-
 PROGS := grab
 grab_OBJS := grab.o
 
