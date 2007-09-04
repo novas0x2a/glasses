@@ -1,5 +1,7 @@
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <sstream>
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -9,6 +11,8 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <cassert>
+
+#include <SDL.h>
 
 #include <linux/types.h>
 #include <linux/videodev.h>
@@ -177,24 +181,107 @@ void VideoDevice::getFrame(char *buf)
 }
 /*}}}*/
 
-class MainWin {
-    MainWin(uint32_t width, uint32_t height, uint32_t depth);
-    ~MainWin(void);
-    MainLoop(void);
+class MainWin
+{
+    public:
+        MainWin(uint32_t width, uint32_t height, uint32_t depth);
+        ~MainWin(void);
+        void MainLoop(void);
+        void WriteFrame(const string filename, bool newFrame);
+    private:
+        uint32_t width, height, depth;
+        SDL_Surface *screen;
+        VideoDevice *v;
+        char *framebuf;
+};
+
+MainWin::MainWin(uint32_t width, uint32_t height, uint32_t depth) : width(width), height(height), depth(depth)
+{
+    assert(depth == 24);
+
+    v = new VideoDevice("/dev/video0");
+
+    v->setParams(width, height, VIDEO_PALETTE_RGB24, depth);
+
+    assert(v->width  == 640);
+    assert(v->height == 480);
+    assert(v->depth  == 24);
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+        throw string("Could not init SDL");
+
+    if (!(screen = SDL_SetVideoMode(width, height, depth, SDL_SWSURFACE)))
+        throw string("Unable to set video mode: ") + SDL_GetError();
+
+    framebuf = new char[v->width*v->height*3];
 }
 
+MainWin::~MainWin(void)
+{
+    delete [] framebuf;
+    SDL_FreeSurface(screen);
+    SDL_Quit();
+}
+
+void MainWin::MainLoop(void)
+{
+    SDL_Event event;
+    SDL_Surface *frame;
+    int i = 0;
+
+    while (1)
+    {
+        while(SDL_PollEvent(&event))
+        {
+            switch(event.type)
+            {
+                case SDL_KEYDOWN:
+                case SDL_QUIT:
+                    return;
+                default:
+                    break;
+            }
+        }
+
+        v->getFrame(framebuf);
+
+        ostringstream s;
+        s << "file" << i++ << ".ppm";
+
+        cerr << s.str() << endl;
+        this->WriteFrame(s.str(), false);
+
+        if (!(frame = SDL_CreateRGBSurfaceFrom(framebuf, v->width, v->height, v->depth, v->width*3, 1, 1, 1, 1)))
+            throw string("CreateSurface failed") + SDL_GetError();
+
+        if (SDL_BlitSurface(frame, NULL, screen, NULL) != 0)
+            throw string("Blit failed") + SDL_GetError();
+        SDL_FreeSurface(frame);
+    }
+}
+
+void MainWin::WriteFrame(const string filename, bool newFrame)
+{
+    ofstream file(filename.c_str(), ios::out|ios::binary);
+
+    if (newFrame)
+        v->getFrame(framebuf);
+
+    file << "P6\n" << v->width << " " << v->height << " 255\n";
+
+    for (uint32_t y = 0; y < v->height; ++y)
+        for (uint32_t x = 0; x < v->width; ++x)
+        {
+            uint32_t off = (y*v->width + x) * 3;
+            file << framebuf[off] << framebuf[off+1] << framebuf[off+2];
+        }
+    file.close();
+}
+
+#if 0
 void Run(void)
 {
     VideoDevice v("/dev/video0");
-
-    v.setParams(640,480,VIDEO_PALETTE_RGB24,24);
-    cerr << v.getCap() << endl << v.getWin() << endl << v.getPic() << endl;
-
-    sleep(1);
-
-    assert(v.width  == 640);
-    assert(v.height == 480);
-    assert(v.depth  == 24);
 
     char *buf = new char[v.width*v.height*3];
 
@@ -212,11 +299,15 @@ void Run(void)
 
     delete[] buf;
 }
+#endif
 
 int main(int argc, char *argv[])
 {
     try {
-        Run();
+        MainWin win(640, 480, 24);
+        sleep(2);
+        win.WriteFrame("blah.ppm", true);
+        win.MainLoop();
     } catch (string p) {
         cerr << "Error: " << p << endl;
     }
