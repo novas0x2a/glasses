@@ -228,6 +228,10 @@ void MainWin::MainLoop(void)
     SDL_Event event;
     SDL_Surface *frame;
     int i = 0;
+    ostringstream s;
+
+    if (!(frame = SDL_CreateRGBSurfaceFrom(framebuf, v->width, v->height, v->depth, v->width*3, 0, 0, 0, 0)))
+        throw string("CreateSurface failed") + SDL_GetError();
 
     while (1)
     {
@@ -236,6 +240,20 @@ void MainWin::MainLoop(void)
             switch(event.type)
             {
                 case SDL_KEYDOWN:
+                    switch(event.key.keysym.sym)
+                    {
+                        case 'q':
+                            return;
+                        case 's':
+                            s.str(string());
+                            s << "file" << i++ << ".ppm";
+                            cerr << s.str() << endl;
+                            this->WriteFrame(s.str(), false);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
                 case SDL_QUIT:
                     return;
                 default:
@@ -245,19 +263,13 @@ void MainWin::MainLoop(void)
 
         v->getFrame(framebuf);
 
-        ostringstream s;
-        s << "file" << i++ << ".ppm";
-
-        cerr << s.str() << endl;
-        this->WriteFrame(s.str(), false);
-
-        if (!(frame = SDL_CreateRGBSurfaceFrom(framebuf, v->width, v->height, v->depth, v->width*3, 1, 1, 1, 1)))
-            throw string("CreateSurface failed") + SDL_GetError();
-
         if (SDL_BlitSurface(frame, NULL, screen, NULL) != 0)
             throw string("Blit failed") + SDL_GetError();
-        SDL_FreeSurface(frame);
+        SDL_Flip(screen);
+
     }
+
+    SDL_FreeSurface(frame);
 }
 
 void MainWin::WriteFrame(const string filename, bool newFrame)
@@ -278,35 +290,10 @@ void MainWin::WriteFrame(const string filename, bool newFrame)
     file.close();
 }
 
-#if 0
-void Run(void)
-{
-    VideoDevice v("/dev/video0");
-
-    char *buf = new char[v.width*v.height*3];
-
-    v.getFrame(buf);
-    cout << "P6\n" << v.width << " " << v.height << " 255\n";
-
-    for (uint32_t y = 0; y < v.height; ++y)
-        for (uint32_t x = 0; x < v.width; ++x)
-        {
-            uint32_t off = (y*v.width + x) * 3;
-            fputc(buf[off],   stdout);
-            fputc(buf[off+1], stdout);
-            fputc(buf[off+2], stdout);
-        }
-
-    delete[] buf;
-}
-#endif
-
 int main(int argc, char *argv[])
 {
     try {
         MainWin win(640, 480, 24);
-        sleep(2);
-        win.WriteFrame("blah.ppm", true);
         win.MainLoop();
     } catch (string p) {
         cerr << "Error: " << p << endl;
