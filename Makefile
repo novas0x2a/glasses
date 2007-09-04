@@ -1,6 +1,6 @@
-PROGS := grab
-grab_OBJS := grab.o
 
-DEBUG=y
+FLAGS := `pkg-config --cflags sdl` -Wall -Wextra -Wno-unused-parameter -g -ggdb
+LIBS  := `pkg-config --libs sdl`
 
-include ../build/c.mk
+all:
+	g++ $(FLAGS) grab.cc -o grab $(LIBS)
