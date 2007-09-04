@@ -15,6 +15,7 @@
 #include <sys/ioctl.h>
 
 #include <SDL.h>
+#include <SDL_ttf.h>
 
 #include <linux/types.h>
 #include <linux/videodev.h>
@@ -86,8 +87,6 @@ VideoDevice::VideoDevice(const char *device) : devname(device)
         throw string("Could not open video device");
 
     VideoCapability cap = this->getCap();
-    cerr << "Opened " << cap.name << endl;
-
     VideoWindow     win = this->getWin();
     VideoPicture    pic = this->getPic();
 
@@ -184,7 +183,7 @@ void VideoDevice::getFrame(char *buf)
 
 /*}}}*/
 
-typedef void (*FilterFunc)(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth);
+typedef void (*FilterFunc)(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth);
 
 class MainWin /*{{{*/
 {
@@ -194,6 +193,7 @@ class MainWin /*{{{*/
         void MainLoop(void);
         void WriteFrame(const string filename, bool newFrame);
         void AddFilter(FilterFunc f, uint8_t idx);
+        void DrawText(char text[], SDL_Rect loc, SDL_Color fg, SDL_Color bg);
     private:
         uint32_t width, height, depth;
         SDL_Surface *screen;
@@ -201,9 +201,10 @@ class MainWin /*{{{*/
         char **framebuf;
         uint8_t windows, winside;
         FilterFunc *funcs;
+        TTF_Font *font;
 };
 
-MainWin::MainWin(uint32_t width, uint32_t height, uint32_t depth, uint8_t win) : width(width), height(height), depth(depth)
+MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), height(h), depth(d)
 {
     assert(depth == 24);
     assert(windows > 0);
@@ -225,6 +226,12 @@ MainWin::MainWin(uint32_t width, uint32_t height, uint32_t depth, uint8_t win) :
     if (!(screen = SDL_SetVideoMode(width*winside, height*winside, depth, SDL_SWSURFACE)))
         throw string("Unable to set video mode: ") + SDL_GetError();
 
+    if (TTF_Init() == -1)
+        throw string("Could not init TTF: ") + TTF_GetError();
+
+    if (!(font = TTF_OpenFont("/usr/share/fonts/ttf-bitstream-vera/Vera.ttf", 20)))
+        throw string("Could not load font: ") + TTF_GetError();
+
     framebuf    = (char**)malloc(windows * sizeof(char*));
     framebuf[0] = (char*)malloc(windows * v->width * v->height * v->depth * 3 * sizeof(char));
     for (uint16_t i = 1; i < windows; ++i)
@@ -243,6 +250,14 @@ MainWin::~MainWin(void)
     SDL_Quit();
 }
 
+void MainWin::DrawText(char text[], SDL_Rect loc, SDL_Color fg, SDL_Color bg)
+{
+    SDL_Surface *txt = TTF_RenderText_Shaded(font, text, fg, bg);
+    if (SDL_BlitSurface(txt, NULL, screen, &loc) != 0)
+        throw string("Text Blit failed") + SDL_GetError();
+    SDL_FreeSurface(txt);
+}
+
 void MainWin::MainLoop(void)
 {
     SDL_Event event;
@@ -250,15 +265,16 @@ void MainWin::MainLoop(void)
     int i = 0;
     ostringstream s;
     struct timeval t1, t2 = {0,0};
+    static uint16_t fps[5] = {0};
+    uint16_t fps_i = 0;
 
     for (uint16_t i = 0; i < windows; ++i)
-        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->width, v->height, v->depth, v->width*3, 0, 0, 0, 0)))
+        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->width, v->height, v->depth, v->width*3, 0x000000ff, 0x0000ff00, 0x00ff0000, 0)))
             throw string("CreateSurface failed") + SDL_GetError();
 
     while (1)
     {
         gettimeofday(&t1, NULL);
-        cerr << 1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0) << endl;
         while(SDL_PollEvent(&event))
         {
             switch(event.type)
@@ -300,6 +316,12 @@ void MainWin::MainLoop(void)
 
         if (SDL_BlitSurface(frame[0], NULL, screen, NULL) != 0)
             throw string("Blit failed") + SDL_GetError();
+
+        fps[fps_i++ % 5] = (uint16_t)(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
+        s.str(string(""));
+        s << (fps[0] + fps[1] + fps[2] + fps[3] + fps[4]) / 5;
+        this->DrawText((char*)s.str().c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
+
         SDL_Flip(screen);
 
         t2.tv_sec  = t1.tv_sec;
@@ -337,48 +359,50 @@ void MainWin::AddFilter(FilterFunc f, uint8_t idx)
 }
 /*}}}*/
 
-void copy(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth)
+void copy(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth)
 {
     assert(depth == 24);
     memcpy(out, in, width * height * 3);
 }
 
-void red(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth)
+void red(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth)
 {
+    assert(width == 320);
+    assert(height == 240);
     assert(depth == 24);
 
     for (uint32_t y = 0; y < height; ++y)
         for (uint32_t x = 0; x < width; ++x)
         {
-            uint32_t off = (y*width + x) * 3;
+            const uint32_t off = (y*width + x) * 3;
             out[off]   = in[off];
             out[off+1] = 0;
             out[off+2] = 0;
         }
 }
 
-void green(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth)
+void green(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth)
 {
     assert(depth == 24);
 
     for (uint32_t y = 0; y < height; ++y)
         for (uint32_t x = 0; x < width; ++x)
         {
-            uint32_t off = (y*width + x) * 3;
+            const uint32_t off = (y*width + x) * 3;
             out[off]   = 0;
             out[off+1] = in[off+1];
             out[off+2] = 0;
         }
 }
 
-void blue(const char *in, char *out, uint32_t width, uint32_t height, uint32_t depth)
+void blue(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth)
 {
     assert(depth == 24);
 
     for (uint32_t y = 0; y < height; ++y)
         for (uint32_t x = 0; x < width; ++x)
         {
-            uint32_t off = (y*width + x) * 3;
+            const uint32_t off = (y*width + x) * 3;
             out[off]   = 0;
             out[off+1] = 0;
             out[off+2] = in[off+2];
