@@ -188,26 +188,22 @@ class MainWin(object):
 
 
 if __name__ == "__main__":
-    Win = MainWin()
-    Win.MainLoop()
+    if 0:
+        Win = MainWin()
+        Win.MainLoop()
+    else:
+        v = VideoDevice('/dev/video0')
+        sleep(1)
 
-#import time
-##
-#v = VideoDevice('/dev/video0')
-#time.sleep(1)
-##
-#p = v.GetPicture()
-#p.palette = 'rgb24'
-#p.depth   = 24
-#v.SetPicture(p)
-#
-##
-#print >>stderr, '%s\n%s\n%s' % (v.GetCaps(), v.GetWindow(), v.GetPicture())
-##
-#data,(width,height,depth) = v.GetFrame()
-##print >>stderr, '%i,%i' % (len(data), width*height*depth)
-##
-#sys.stdout.write('P6\n%d %d 255\n' % (width, height))
-#
-#for i in xrange(width * height):
-#    sys.stdout.write('%c%c%c' % (data[i*3], data[i*3+1], data[i*3+2]))
+        p = v.GetPicture()
+        p.palette = 'rgb24'
+        p.depth   = 24
+        v.SetPicture(p)
+
+        print >>stderr, '%s\n%s\n%s' % (v.GetCaps(), v.GetWindow(), v.GetPicture())
+
+        data,(width,height,depth) = v.GetFrame()
+        sys.stdout.write('P6\n%d %d 255\n' % (width, height))
+
+        for i in xrange(width * height):
+            sys.stdout.write('%c%c%c' % (data[i*3], data[i*3+1], data[i*3+2]))

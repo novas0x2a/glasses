@@ -60,9 +60,13 @@ class VideoDevice
         void setWin(const VideoWindow&);
         void setPic(const VideoPicture&);
 
-        void setParams(const uint32_t width, const uint32_t height, const uint16_t depth = 0);
+        void setParams(const uint32_t width, const uint32_t height, const uint16_t palette = VIDEO_PALETTE_RGB24, const uint16_t depth = 0);
         pair<pair<uint32_t, uint32_t>, uint16_t> getParams(void);
 
+        void getFrame(char *buf);
+
+        uint32_t width, height;
+        uint16_t depth;
     private:
         const string devname;
         int dev;
@@ -70,13 +74,18 @@ class VideoDevice
 
 VideoDevice::VideoDevice(const char *device) : devname(device)
 {
-    VideoCapability cap;
-
     if ((dev = open(devname.c_str(), O_RDONLY)) < 0)
         throw string("Could not open video device");
 
-    if (ioctl(dev, VIDIOCGCAP, &cap) < 0)
-        throw string("Couldn't get capabilities. Not a V4L device?");
+    VideoCapability cap = this->getCap();
+    cerr << "Opened " << cap.name << endl;
+
+    VideoWindow     win = this->getWin();
+    VideoPicture    pic = this->getPic();
+
+    width  = win.width;
+    height = win.height;
+    depth  = pic.depth;
 }
 
 VideoDevice::~VideoDevice(void)
@@ -112,17 +121,27 @@ VideoPicture& VideoDevice::getPic(void)
 
 void VideoDevice::setWin(const VideoWindow& win)
 {
+    VideoWindow w;
     if(ioctl(dev, VIDIOCSWIN, &win) < 0)
         throw string("Couldn't set window");
+    if(ioctl(dev, VIDIOCGWIN, &w) < 0)
+        throw string("Couldn't get window");
+
+    width  = w.width;
+    height = w.height;
 }
 
 void VideoDevice::setPic(const VideoPicture& pic)
 {
+    VideoPicture p;
     if(ioctl(dev, VIDIOCSPICT, &pic) < 0)
         throw string("Couldn't set picture");
+    if(ioctl(dev, VIDIOCGPICT, &p) < 0)
+        throw string("Couldn't set picture");
+    depth = p.depth;
 }
 
-void VideoDevice::setParams(const uint32_t width, const uint32_t height, const uint16_t depth)
+void VideoDevice::setParams(const uint32_t width, const uint32_t height, const uint16_t palette, const uint16_t depth)
 {
     VideoWindow w = this->getWin();
     w.width  = width;
@@ -132,7 +151,8 @@ void VideoDevice::setParams(const uint32_t width, const uint32_t height, const u
     if (depth != 0)
     {
         VideoPicture p = this->getPic();
-        p.depth = depth;
+        p.depth   = depth;
+        p.palette = palette;
         this->setPic(p);
     }
 }
@@ -140,22 +160,43 @@ void VideoDevice::setParams(const uint32_t width, const uint32_t height, const u
 pair<pair<uint32_t, uint32_t>, uint16_t> VideoDevice::getParams(void)
 {
     static pair<pair<uint32_t, uint32_t>, uint16_t> data;
-    VideoWindow  w = this->getWin();
-    VideoPicture p = this->getPic();
 
-    data.first.first = w.width;
-    data.first.second = w.height;
-    data.second = p.depth;
+    data.first.first  = width;
+    data.first.second = height;
+    data.second       = depth;
 
     return data;
+}
+
+void VideoDevice::getFrame(char *buf)
+{
+    if (read(dev, buf, width * height * depth) < 0)
+        throw string("Unable to read from device");
 }
 
 void Run(void)
 {
     VideoDevice v("/dev/video0");
 
-    v.setParams(640,480,24);
-    cout << v.getCap() << endl << v.getWin() << endl << v.getPic() << endl;
+    v.setParams(640,480,VIDEO_PALETTE_RGB24,24);
+    cerr << v.getCap() << endl << v.getWin() << endl << v.getPic() << endl;
+
+    sleep(3);
+
+    char *buf = new char[v.width*v.height*v.depth];
+
+    v.getFrame(buf);
+    cout << "P6\n" << v.width << " " << v.height << " 255\n";
+
+    for (uint16_t x = 0; x < v.width; ++x)
+        for (uint16_t y = 0; y < v.height; ++y)
+        {
+            uint32_t off = x*y*3;
+            fputc(buf[off],   stdout);
+            fputc(buf[off+1], stdout);
+            fputc(buf[off+2], stdout);
+        }
+    delete[] buf;
 }
 
 int main(int argc, char *argv[])
@@ -167,29 +208,3 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
-
-#if 0
-
-    buffer = malloc(win.width * win.height * vpic.depth);
-    read(v, buffer, win.width * win.height * vpic.depth);
-
-    fprintf(stdout, "P6\n%d %d 255\n", win.width, win.height);
-
-    assert(vpic.palette == VIDEO_PALETTE_RGB24);
-
-    src = buffer;
-    for (i = 0; i < win.width * win.height; ++i)
-    {
-        fputc(src[0], stdout);
-        fputc(src[1], stdout);
-        fputc(src[2], stdout);
-        src += 3;
-    }
-
-    free(buffer);
-
-exit1:
-    if (close(v) < 0)
-        pgoto(exit0, "Close failed");
-exit0:
-#endif
