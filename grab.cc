@@ -183,7 +183,12 @@ void VideoDevice::getFrame(char *buf)
 
 /*}}}*/
 
-typedef void (*FilterFunc)(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth);
+typedef struct {
+    uint8_t b;
+    uint8_t g;
+    uint8_t r;
+} Pixel;
+typedef void (*FilterFunc)(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height);
 
 class MainWin /*{{{*/
 {
@@ -223,7 +228,7 @@ MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), he
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         throw string("Could not init SDL");
 
-    if (!(screen = SDL_SetVideoMode(width*winside, height*winside, depth, SDL_SWSURFACE)))
+    if (!(screen = SDL_SetVideoMode(width*winside, height*winside, depth, SDL_HWSURFACE)))
         throw string("Unable to set video mode: ") + SDL_GetError();
 
     if (TTF_Init() == -1)
@@ -269,7 +274,7 @@ void MainWin::MainLoop(void)
     uint16_t fps_i = 0;
 
     for (uint16_t i = 0; i < windows; ++i)
-        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->width, v->height, v->depth, v->width*3, 0x000000ff, 0x0000ff00, 0x00ff0000, 0)))
+        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->width, v->height, v->depth, v->width*3, 0x00ff0000, 0x0000ff00, 0x000000ff, 0)))
             throw string("CreateSurface failed") + SDL_GetError();
 
     while (1)
@@ -306,7 +311,7 @@ void MainWin::MainLoop(void)
         for (uint16_t i = 1; i < windows; ++i)
             if (funcs[i])
             {
-                funcs[i](framebuf[0], framebuf[i], v->width, v->height, v->depth);
+                funcs[i]((Pixel*)framebuf[0], (Pixel*)framebuf[i], v->width, v->height);
                 SDL_Rect r = {i % winside, i / winside, 0, 0};
                 r.x *= width;
                 r.y *= height;
@@ -359,53 +364,44 @@ void MainWin::AddFilter(FilterFunc f, uint8_t idx)
 }
 /*}}}*/
 
-void copy(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth)
+void copy(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    assert(depth == 24);
-    memcpy(out, in, width * height * 3);
+    memcpy(out, in, width * height * sizeof(Pixel));
 }
 
-void red(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth)
+void red(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    assert(width == 320);
-    assert(height == 240);
-    assert(depth == 24);
-
     for (uint32_t y = 0; y < height; ++y)
         for (uint32_t x = 0; x < width; ++x)
         {
-            const uint32_t off = (y*width + x) * 3;
-            out[off]   = in[off];
-            out[off+1] = 0;
-            out[off+2] = 0;
+            const uint32_t off = y*width + x;
+            out[off].r = in[off].r;
+            out[off].g = 0;
+            out[off].b = 0;
         }
 }
 
-void green(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth)
+void green(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    assert(depth == 24);
-
     for (uint32_t y = 0; y < height; ++y)
         for (uint32_t x = 0; x < width; ++x)
         {
-            const uint32_t off = (y*width + x) * 3;
-            out[off]   = 0;
-            out[off+1] = in[off+1];
-            out[off+2] = 0;
+            const uint32_t off = y*width + x;
+            out[off].r = 0;
+            out[off].g = in[off].g;
+            out[off].b = 0;
         }
 }
 
-void blue(const char *in, char *out, const uint32_t width, const uint32_t height, const uint32_t depth)
+void blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    assert(depth == 24);
-
     for (uint32_t y = 0; y < height; ++y)
         for (uint32_t x = 0; x < width; ++x)
         {
-            const uint32_t off = (y*width + x) * 3;
-            out[off]   = 0;
-            out[off+1] = 0;
-            out[off+2] = in[off+2];
+            const uint32_t off = y*width + x;
+            out[off].r = 0;
+            out[off].g = 0;
+            out[off].b = in[off].b;
         }
 }
 
