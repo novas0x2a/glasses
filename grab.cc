@@ -5,8 +5,8 @@
 #include <cassert>
 #include <cmath>
 #include <vector>
+#include <cerrno>
 
-//#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -21,6 +21,14 @@
 #include <linux/videodev.h>
 
 using namespace std;
+
+template<typename T>
+inline std::string stringify(const T& x)
+{
+    ostringstream o;
+    o << x;
+    return o.str();
+}
 
 /*{{{ Print Overloads */
 typedef struct video_capability VideoCapability;
@@ -199,6 +207,7 @@ class MainWin /*{{{*/
         void WriteFrame(const string filename, bool newFrame);
         void AddFilter(FilterFunc f, uint8_t idx);
         void DrawText(char text[], SDL_Rect loc, SDL_Color fg, SDL_Color bg);
+        void ScreenShot(SDL_Surface *s);
     private:
         uint32_t width, height, depth;
         SDL_Surface *screen;
@@ -268,7 +277,6 @@ void MainWin::MainLoop(void)
     SDL_Event event;
     SDL_Surface *frame[windows];
     int i = 0;
-    ostringstream s;
     struct timeval t1, t2 = {0,0};
     static uint16_t fps[5] = {0};
     uint16_t fps_i = 0;
@@ -289,11 +297,11 @@ void MainWin::MainLoop(void)
                     {
                         case 'q':
                             return;
+                        case 'r':
+                            this->WriteFrame(string("file") + stringify(i++) + ".ppm", false);
+                            break;
                         case 's':
-                            s.str(string());
-                            s << "file" << i++ << ".ppm";
-                            cerr << s.str() << endl;
-                            this->WriteFrame(s.str(), false);
+                            this->ScreenShot(screen);
                             break;
                         default:
                             break;
@@ -323,9 +331,8 @@ void MainWin::MainLoop(void)
             throw string("Blit failed") + SDL_GetError();
 
         fps[fps_i++ % 5] = (uint16_t)(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
-        s.str(string(""));
-        s << (fps[0] + fps[1] + fps[2] + fps[3] + fps[4]) / 5;
-        this->DrawText((char*)s.str().c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
+
+        this->DrawText((char*)stringify((fps[0] + fps[1] + fps[2] + fps[3] + fps[4]) / 5).c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
 
         SDL_Flip(screen);
 
@@ -353,6 +360,40 @@ void MainWin::WriteFrame(const string filename, bool newFrame)
             file << framebuf[0][off] << framebuf[0][off+1] << framebuf[0][off+2];
         }
     file.close();
+}
+
+void MainWin::ScreenShot(SDL_Surface *s)
+{
+    for (uint32_t i = 0; true; ++i)
+    {
+        int fd = open(string("shot" + stringify(i) + ".ppm").c_str(), O_CREAT|O_EXCL|O_WRONLY, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+        if (fd < 0)
+        {
+            if(errno == EEXIST)
+                continue;
+            else
+                throw string("Could not open screenshot file: ") + strerror(errno);
+        }
+        FILE *f = fdopen(fd, "w");
+        if (!f)
+            throw string("Could not get FILE pointer to screenshot file: ") + strerror(errno);
+
+        fprintf(f, "P6\n%i %i 255\n", s->w, s->h);
+
+        Pixel *p = (Pixel*)s->pixels;
+
+        for (int32_t y = 0; y < s->h; ++y)
+            for (int32_t x = 0; x < s->w; ++x)
+            {
+                //uint32_t off = (y*s->w + x) * 3;
+                uint32_t off = y*s->w + x;
+                //Pixel *px = (Pixel*)&p[y*s->w + x];
+                //fprintf(f, "%c%c%c", p[off+2], p[off+1], p[off]);
+                fprintf(f, "%c%c%c", p[off].r, p[off].g, p[off].b);
+            }
+        fclose(f);
+        return;
+    }
 }
 
 void MainWin::AddFilter(FilterFunc f, uint8_t idx)
@@ -405,13 +446,25 @@ void blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
         }
 }
 
+void better(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    for (uint32_t y = 0; y < height; ++y)
+        for (uint32_t x = 0; x < width; ++x)
+        {
+            const uint32_t off = y*width + x;
+            out[off].r = in[off].r;
+            out[off].g = in[off].g;
+            out[off].b = (uint8_t)(in[off].b*0.75);
+        }
+}
+
 int main(int argc, char *argv[])
 {
     try {
         MainWin win(320, 240, 24, 3);
         win.AddFilter(red,   1);
         win.AddFilter(green, 2);
-        win.AddFilter(blue,  3);
+        win.AddFilter(better,3);
         win.MainLoop();
     } catch (string p) {
         cerr << "Error: " << p << endl;
