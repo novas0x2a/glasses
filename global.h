@@ -8,8 +8,7 @@
 #define unlikely(x)     __builtin_expect((x),0)
 
 typedef unsigned char byte;
-typedef byte v8qi __attribute__((vector_size (4)));
-typedef v8qi Pixel;
+typedef byte Pixel __attribute__((vector_size (4)));
 
 inline byte& R(const Pixel &p) {return ((byte*)&p)[2];}
 inline byte& G(const Pixel &p) {return ((byte*)&p)[1];}
