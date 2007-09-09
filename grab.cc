@@ -26,6 +26,15 @@ using namespace std;
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
 
+typedef unsigned char byte;
+typedef byte v8qi __attribute__((vector_size (4)));
+typedef v8qi Pixel;
+
+inline byte& R(const Pixel &p) {return ((byte*)&p)[2];}
+inline byte& G(const Pixel &p) {return ((byte*)&p)[1];}
+inline byte& B(const Pixel &p) {return ((byte*)&p)[0];}
+
+
 template<typename T>
 inline std::string stringify(const T& x)
 {
@@ -67,20 +76,10 @@ ostream& operator<< (ostream& os, const VideoPicture& a) {
     return os;
 }/*}}}*/
 
-class VideoDevice /*{{{*/
+#if 0
+class VideoDevice
 {
     public:
-
-        VideoDevice(const char *);
-        ~VideoDevice(void);
-
-        VideoCapability& getCap(void) const;
-        VideoWindow&     getWin(void) const;
-        VideoPicture&    getPic(void) const;
-
-        void setWin(const VideoWindow&);
-        void setPic(const VideoPicture&);
-
         void setParams(const uint32_t width, const uint32_t height, const uint16_t palette = VIDEO_PALETTE_RGB32, const uint16_t depth = 0);
         pair<pair<uint32_t, uint32_t>, uint16_t> getParams(void) const;
 
@@ -100,7 +99,48 @@ class VideoDevice /*{{{*/
 
         uint32_t width, height;
         uint16_t depth;
+}
+#endif
+
+class VideoDevice /*{{{*/
+{
+    public:
+
+        VideoDevice(const char *);
+        ~VideoDevice(void);
+
+        friend ostream& operator<< (ostream &os, const VideoDevice& v);
+
+        void setParams(const uint32_t width, const uint32_t height, const uint16_t palette = VIDEO_PALETTE_RGB32, const uint16_t depth = 0);
+        void getFrame(byte *buf);
+
+        const uint16_t getBrightness(void) const;
+        const uint16_t getHue(void) const;
+        const uint16_t getColour(void) const;
+        const uint16_t getContrast(void) const;
+        const uint16_t getWhiteness(void) const;
+
+        void setBrightness(const uint16_t);
+        void setHue(const uint16_t);
+        void setColour(const uint16_t);
+        void setContrast(const uint16_t);
+        void setWhiteness(const uint16_t);
+
+        uint32_t getWidth(void)  const {return width;};
+        uint32_t getHeight(void) const {return height;};
+        uint32_t getDepth(void)  const {return depth;};
+
+    protected:
+        VideoCapability& getCap(void) const;
+        VideoWindow&     getWin(void) const;
+        VideoPicture&    getPic(void) const;
+
+        void setWin(const VideoWindow&);
+        void setPic(const VideoPicture&);
+
     private:
+        uint32_t width, height;
+        uint16_t depth;
         const string devname;
         int dev;
 };
@@ -248,32 +288,13 @@ void VideoDevice::setWhiteness(const uint16_t x)
     this->setPic(p);
 }
 
-pair<pair<uint32_t, uint32_t>, uint16_t> VideoDevice::getParams(void) const
-{
-    static pair<pair<uint32_t, uint32_t>, uint16_t> data;
-
-    data.first.first  = width;
-    data.first.second = height;
-    data.second       = depth;
-
-    return data;
-}
-
-void VideoDevice::getFrame(char *buf)
+void VideoDevice::getFrame(byte *buf)
 {
     if (read(dev, buf, width * height * depth>>3) < 0)
         throw string("Unable to read from device");
 }
 
 /*}}}*/
-
-typedef unsigned char byte;
-typedef byte v8qi __attribute__((vector_size (4)));
-typedef v8qi Pixel;
-
-inline byte& R(const Pixel &p) {return ((byte*)&p)[2];}
-inline byte& G(const Pixel &p) {return ((byte*)&p)[1];}
-inline byte& B(const Pixel &p) {return ((byte*)&p)[0];}
 
 typedef void (*FilterFunc)(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height);
 
@@ -290,7 +311,7 @@ class MainWin /*{{{*/
         uint32_t width, height, depth;
         SDL_Surface *screen;
         VideoDevice *v;
-        char **framebuf;
+        byte **framebuf;
         uint8_t windows, winside;
         FilterFunc *funcs;
         TTF_Font *font;
@@ -307,9 +328,9 @@ MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), he
             depth == 32 ? VIDEO_PALETTE_RGB32 :
             depth == 24 ? VIDEO_PALETTE_RGB24 : VIDEO_PALETTE_RGB565, depth);
 
-    assert(v->width  == width);
-    assert(v->height == height);
-    assert(v->depth  == depth);
+    assert(v->getWidth()  == width);
+    assert(v->getHeight() == height);
+    assert(v->getDepth()  == depth);
 
     winside = (uint8_t)ceil(sqrt(win));
     windows = winside * winside;
@@ -326,10 +347,10 @@ MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), he
     if (!(font = TTF_OpenFont("/usr/share/fonts/ttf-bitstream-vera/Vera.ttf", 20)))
         throw string("Could not load font: ") + TTF_GetError();
 
-    framebuf    = (char**)malloc(windows * sizeof(char*));
-    framebuf[0] = (char*)malloc(windows * v->width * v->height * v->depth * (depth>>3) * sizeof(char));
+    framebuf    = (byte**)malloc(windows * sizeof(char*));
+    framebuf[0] = (byte*)malloc(windows * v->getWidth() * v->getHeight() * (v->getDepth()>>3));
     for (uint16_t i = 1; i < windows; ++i)
-        framebuf[i] = framebuf[0] + (i * v->width * v->height * v->depth * (depth>>3) * sizeof(char));
+        framebuf[i] = framebuf[0] + (i * v->getWidth() * v->getHeight() * (v->getDepth()>>3));
 
     funcs = new FilterFunc[windows];
     memset(funcs, 0, sizeof(FilterFunc) * windows);
@@ -357,11 +378,11 @@ void MainWin::MainLoop(void)
     SDL_Event event;
     SDL_Surface *frame[windows];
     struct timeval t1, t2 = {0,0};
-    static const uint16_t AVG_SAMP = 5;
+    static const uint16_t AVG_SAMP = 10;
     uint32_t fps[AVG_SAMP] = {0}, fps_avg = 0, fps_i = 0;
 
     for (uint16_t i = 0; i < windows; ++i)
-        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->width, v->height, v->depth, v->width*(depth>>3), 0x00ff0000, 0x0000ff00, 0x000000ff, 0)))
+        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->getWidth(), v->getHeight(), v->getDepth(), v->getWidth()*(depth>>3), 0x00ff0000, 0x0000ff00, 0x000000ff, 0)))
             throw string("CreateSurface failed") + SDL_GetError();
 
     while (1)
@@ -410,7 +431,7 @@ void MainWin::MainLoop(void)
         for (uint16_t i = 1; i < windows; ++i)
             if (likely(funcs[i] != NULL))
             {
-                funcs[i]((Pixel*)framebuf[0], (Pixel*)framebuf[i], v->width, v->height);
+                funcs[i]((Pixel*)framebuf[0], (Pixel*)framebuf[i], v->getWidth(), v->getHeight());
                 SDL_Rect r = {i % winside, i / winside, 0, 0};
                 r.x *= width;
                 r.y *= height;
