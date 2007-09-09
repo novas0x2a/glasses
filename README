@@ -1,3 +1,40 @@
-This is Glasses. It's a program to aid in computer vision studies. You need:
+This is Glasses. It's a program to aid in computer vision studies. Aid in
+vision. Glasses. Get it? Here are the things you need, and the versions I
+tested with.
 
+sdl     (1.2.12)
+sdl-ttf (2.0.9)
+g++     (4.1.2, 4.2.0)
+linux   (for now, until more camera interfaces are implemented)
+V4L camera
 
+Implement the VideoDevice interface for your camera if you don't have a V4L
+one. That'd be sweet. I'm aiming for cross-platform stuff here. I doubt it will
+compile with vc++, though. It will probably compile with ICC, Intel's
+proprietary compiler.
+
+The default setup shows (left-to-right, top-to-bottom):
+0) Current camera view
+1) Invert
+2) Replace-blue. This uses the average of the red and green channels to replace
+   the blue channel.
+3) Red     channel
+4) Green   channel
+5) Blue    channel
+6) Cyan    channel
+7) Magenta channel
+8) Yellow  channel
+
+Keys:
+
+s) Dump the current screen to shotX.ppm, where X is the lowest unsigned integer
+   for which a shot does not already exist.
+
+There's a lot left to do. I'm releasing this now because it'll encourage me to
+keep working on it. Right now, filters must be fixed at compile time, and there
+can only be one filter per frame. There isn't a good way for filters to draw
+text and such on their frames. Lots left to do.
+
+Everything in here is covered by the GPL v2.
+
+Mike Lundy <mike@fluffypenguin.org>

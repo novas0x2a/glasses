@@ -27,7 +27,7 @@ $(PROGRAM)-debug: $(SRC:.cc=-debug.o)
 	g++ $(CXXFLAGS) $(DBGFLAGS)  $(filter %.cc,$^) -c -o $@
 
 clean:
-	rm -f $(PROGRAM) $(PROGRAM)-debug *.o
+	rm -f $(PROGRAM) $(PROGRAM)-debug *.o core
 
 .dep: $(SRC)
 	g++ -MM $(CXXFLAGS) $^ > $@
