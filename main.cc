@@ -1,6 +1,5 @@
 #include <iostream>
 #include <string>
-#include <cassert>
 
 #include "global.h"
 #include "window.h"
@@ -27,6 +26,12 @@ void green(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t hei
 void blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     for (uint32_t y = 0; y < height*width; ++y)
+        out[y] = (in[y] & (Pixel){0xff,0,0,0});
+}
+
+void replace_blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    for (uint32_t y = 0; y < height*width; ++y)
     {
         B(out[y]) = (R(in[y]) + G(in[y]))/2;
         R(out[y]) = R(in[y]);
@@ -36,13 +41,12 @@ void blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
 
 int main(int argc, char *argv[])
 {
-    assert(sizeof(Pixel) == 4);
-
     try {
-        MainWin win(320, 240, 32, 4);
+        MainWin win(320, 240, 32, 5);
         win.AddFilter(red,   1);
         win.AddFilter(green, 2);
         win.AddFilter(blue,  3);
+        win.AddFilter(replace_blue, 4);
         win.MainLoop();
     } catch (string p) {
         cerr << "Error: " << p << endl;

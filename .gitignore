@@ -1,7 +1,7 @@
-*.swp
 core
 grab
+grab-debug
 old
-old2
 *.ppm
-grab-c
+*.o
+*.swp
