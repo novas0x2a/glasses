@@ -19,8 +19,12 @@
 
 #include <linux/types.h>
 #include <linux/videodev.h>
+#include <xmmintrin.h>
 
 using namespace std;
+
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
 
 template<typename T>
 inline std::string stringify(const T& x)
@@ -77,7 +81,7 @@ class VideoDevice /*{{{*/
         void setWin(const VideoWindow&);
         void setPic(const VideoPicture&);
 
-        void setParams(const uint32_t width, const uint32_t height, const uint16_t palette = VIDEO_PALETTE_RGB24, const uint16_t depth = 0);
+        void setParams(const uint32_t width, const uint32_t height, const uint16_t palette = VIDEO_PALETTE_RGB32, const uint16_t depth = 0);
         pair<pair<uint32_t, uint32_t>, uint16_t> getParams(void);
 
         void getFrame(char *buf);
@@ -185,17 +189,20 @@ pair<pair<uint32_t, uint32_t>, uint16_t> VideoDevice::getParams(void)
 
 void VideoDevice::getFrame(char *buf)
 {
-    if (read(dev, buf, width * height * depth/3) < 0)
+    if (read(dev, buf, width * height * depth>>3) < 0)
         throw string("Unable to read from device");
 }
 
 /*}}}*/
 
-typedef struct {
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
-} Pixel;
+typedef unsigned char byte;
+typedef byte v8qi __attribute__((vector_size (4)));
+typedef v8qi Pixel;
+
+inline byte& r(const Pixel &p) {return ((byte*)&p)[2];}
+inline byte& g(const Pixel &p) {return ((byte*)&p)[1];}
+inline byte& b(const Pixel &p) {return ((byte*)&p)[0];}
+
 typedef void (*FilterFunc)(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height);
 
 class MainWin /*{{{*/
@@ -204,9 +211,8 @@ class MainWin /*{{{*/
         MainWin(uint32_t width, uint32_t height, uint32_t depth, uint8_t windows = 1);
         ~MainWin(void);
         void MainLoop(void);
-        void WriteFrame(const string filename, bool newFrame);
         void AddFilter(FilterFunc f, uint8_t idx);
-        void DrawText(char text[], SDL_Rect loc, SDL_Color fg, SDL_Color bg);
+        void DrawText(const char *text, SDL_Rect loc, SDL_Color fg, SDL_Color bg);
         void ScreenShot(SDL_Surface *s);
     private:
         uint32_t width, height, depth;
@@ -220,12 +226,14 @@ class MainWin /*{{{*/
 
 MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), height(h), depth(d)
 {
-    assert(depth == 24);
+    assert(depth % 8 == 0 && depth >= 24);
     assert(windows > 0);
 
     v = new VideoDevice("/dev/video0");
 
-    v->setParams(width, height, VIDEO_PALETTE_RGB24, depth);
+    v->setParams(width, height,
+            depth == 32 ? VIDEO_PALETTE_RGB32 :
+            depth == 24 ? VIDEO_PALETTE_RGB24 : VIDEO_PALETTE_RGB565, depth);
 
     assert(v->width  == width);
     assert(v->height == height);
@@ -247,9 +255,9 @@ MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), he
         throw string("Could not load font: ") + TTF_GetError();
 
     framebuf    = (char**)malloc(windows * sizeof(char*));
-    framebuf[0] = (char*)malloc(windows * v->width * v->height * v->depth * 3 * sizeof(char));
+    framebuf[0] = (char*)malloc(windows * v->width * v->height * v->depth * (depth>>3) * sizeof(char));
     for (uint16_t i = 1; i < windows; ++i)
-        framebuf[i] = framebuf[0] + (i * v->width * v->height * v->depth * 3 * sizeof(char));
+        framebuf[i] = framebuf[0] + (i * v->width * v->height * v->depth * (depth>>3) * sizeof(char));
 
     funcs = new FilterFunc[windows];
     memset(funcs, 0, sizeof(FilterFunc) * windows);
@@ -264,11 +272,11 @@ MainWin::~MainWin(void)
     SDL_Quit();
 }
 
-void MainWin::DrawText(char text[], SDL_Rect loc, SDL_Color fg, SDL_Color bg)
+void MainWin::DrawText(const char *text, SDL_Rect loc, SDL_Color fg, SDL_Color bg)
 {
     SDL_Surface *txt = TTF_RenderText_Shaded(font, text, fg, bg);
     if (SDL_BlitSurface(txt, NULL, screen, &loc) != 0)
-        throw string("Text Blit failed") + SDL_GetError();
+        throw string("Text Blit failed: ") + SDL_GetError();
     SDL_FreeSurface(txt);
 }
 
@@ -276,13 +284,12 @@ void MainWin::MainLoop(void)
 {
     SDL_Event event;
     SDL_Surface *frame[windows];
-    int i = 0;
     struct timeval t1, t2 = {0,0};
-    static uint16_t fps[5] = {0};
-    uint16_t fps_i = 0;
+    static const uint16_t AVG_SAMP = 5;
+    uint32_t fps[AVG_SAMP] = {0}, fps_avg = 0, fps_i = 0;
 
     for (uint16_t i = 0; i < windows; ++i)
-        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->width, v->height, v->depth, v->width*3, 0x00ff0000, 0x0000ff00, 0x000000ff, 0)))
+        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->width, v->height, v->depth, v->width*(depth>>3), 0x00ff0000, 0x0000ff00, 0x000000ff, 0)))
             throw string("CreateSurface failed") + SDL_GetError();
 
     while (1)
@@ -297,9 +304,6 @@ void MainWin::MainLoop(void)
                     {
                         case 'q':
                             return;
-                        case 'r':
-                            this->WriteFrame(string("file") + stringify(i++) + ".ppm", false);
-                            break;
                         case 's':
                             this->ScreenShot(screen);
                             break;
@@ -317,22 +321,29 @@ void MainWin::MainLoop(void)
         v->getFrame(framebuf[0]);
 
         for (uint16_t i = 1; i < windows; ++i)
-            if (funcs[i])
+            if (likely(funcs[i] != NULL))
             {
                 funcs[i]((Pixel*)framebuf[0], (Pixel*)framebuf[i], v->width, v->height);
                 SDL_Rect r = {i % winside, i / winside, 0, 0};
                 r.x *= width;
                 r.y *= height;
-                if (SDL_BlitSurface(frame[i], NULL, screen, &r) != 0)
+                if (unlikely(SDL_BlitSurface(frame[i], NULL, screen, &r) != 0))
                     throw string("Blit failed") + SDL_GetError();
             }
+            else
+                break;
 
-        if (SDL_BlitSurface(frame[0], NULL, screen, NULL) != 0)
+        if (unlikely(SDL_BlitSurface(frame[0], NULL, screen, NULL) != 0))
             throw string("Blit failed") + SDL_GetError();
 
-        fps[fps_i++ % 5] = (uint16_t)(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
+        fps[fps_i++] = (uint16_t)(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
+        if (fps_i == AVG_SAMP)
+            fps_i = 0;
+        for (uint16_t i = 0; i < AVG_SAMP; ++i)
+            fps_avg += fps[i];
+        fps_avg /= AVG_SAMP;
 
-        this->DrawText((char*)stringify((fps[0] + fps[1] + fps[2] + fps[3] + fps[4]) / 5).c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
+        this->DrawText(stringify(fps_avg).c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
 
         SDL_Flip(screen);
 
@@ -342,24 +353,6 @@ void MainWin::MainLoop(void)
 
     for (uint16_t i = 0; i < windows; ++i)
         SDL_FreeSurface(frame[i]);
-}
-
-void MainWin::WriteFrame(const string filename, bool newFrame)
-{
-    ofstream file(filename.c_str(), ios::out|ios::binary);
-
-    if (newFrame)
-        v->getFrame(framebuf[0]);
-
-    file << "P6\n" << v->width << " " << v->height << " 255\n";
-
-    for (uint32_t y = 0; y < v->height; ++y)
-        for (uint32_t x = 0; x < v->width; ++x)
-        {
-            uint32_t off = (y*v->width + x) * 3;
-            file << framebuf[0][off] << framebuf[0][off+1] << framebuf[0][off+2];
-        }
-    file.close();
 }
 
 void MainWin::ScreenShot(SDL_Surface *s)
@@ -385,11 +378,8 @@ void MainWin::ScreenShot(SDL_Surface *s)
         for (int32_t y = 0; y < s->h; ++y)
             for (int32_t x = 0; x < s->w; ++x)
             {
-                //uint32_t off = (y*s->w + x) * 3;
                 uint32_t off = y*s->w + x;
-                //Pixel *px = (Pixel*)&p[y*s->w + x];
-                //fprintf(f, "%c%c%c", p[off+2], p[off+1], p[off]);
-                fprintf(f, "%c%c%c", p[off].r, p[off].g, p[off].b);
+                fprintf(f, "%c%c%c", r(p[off]), g(p[off]), b(p[off]));
             }
         fclose(f);
         return;
@@ -412,59 +402,72 @@ void copy(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
 
 void red(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    for (uint32_t y = 0; y < height; ++y)
-        for (uint32_t x = 0; x < width; ++x)
-        {
-            const uint32_t off = y*width + x;
-            out[off].r = in[off].r;
-            out[off].g = 0;
-            out[off].b = 0;
-        }
+    for (uint32_t y = 0; y < height*width; ++y)
+        out[y] = (in[y] & (Pixel){0,0,0xff,0});
 }
 
 void green(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    for (uint32_t y = 0; y < height; ++y)
-        for (uint32_t x = 0; x < width; ++x)
-        {
-            const uint32_t off = y*width + x;
-            out[off].r = 0;
-            out[off].g = in[off].g;
-            out[off].b = 0;
-        }
+    for (uint32_t y = 0; y < height*width; ++y)
+    {
+        r(out[y]) = 0;
+        g(out[y]) = g(in[y]);
+        b(out[y]) = 0;
+    }
 }
 
 void blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    for (uint32_t y = 0; y < height; ++y)
-        for (uint32_t x = 0; x < width; ++x)
-        {
-            const uint32_t off = y*width + x;
-            out[off].r = 0;
-            out[off].g = 0;
-            out[off].b = in[off].b;
-        }
+    for (uint32_t y = 0; y < height*width; ++y)
+    {
+        b(out[y]) = (r(in[y]) + g(in[y]))/2;
+        r(out[y]) = r(in[y]);
+        g(out[y]) = g(in[y]);
+        //out[y] = (in[y] * (Pixel){1,0,0,0});
+    }
 }
 
-void better(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+#if 0
+void red(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    for (uint32_t y = 0; y < height; ++y)
-        for (uint32_t x = 0; x < width; ++x)
-        {
-            const uint32_t off = y*width + x;
-            out[off].r = in[off].r;
-            out[off].g = in[off].g;
-            out[off].b = (uint8_t)(in[off].b*0.75);
-        }
+    for (uint32_t y = 0; y < height*width; ++y)
+    {
+            r(out[y]) = r(in[y]);
+            g(out[y]) = 0;
+            b(out[y]) = 0;
+    }
 }
+
+void green(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    for (uint32_t y = 0; y < height*width; ++y)
+    {
+        r(out[y]) = 0;
+        g(out[y]) = g(in[y]);
+        b(out[y]) = 0;
+    }
+}
+
+void blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    for (uint32_t y = 0; y < height*width; ++y)
+    {
+        r(out[y]) = 0;
+        g(out[y]) = 0;
+        b(out[y]) = b(in[y]);
+    }
+}
+#endif
 
 int main(int argc, char *argv[])
 {
+    assert(sizeof(Pixel)   == 4);
+
     try {
-        MainWin win(320, 240, 24, 3);
+        MainWin win(320, 240, 32, 3);
         win.AddFilter(red,   1);
         win.AddFilter(green, 2);
-        win.AddFilter(better,3);
+        win.AddFilter(blue,  3);
         win.MainLoop();
     } catch (string p) {
         cerr << "Error: " << p << endl;
