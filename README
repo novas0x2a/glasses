@@ -11,7 +11,7 @@ V4L camera
 Implement the VideoDevice interface for your camera if you don't have a V4L
 one. That'd be sweet. I'm aiming for cross-platform stuff here. I doubt it will
 compile with vc++, though. It will probably compile with ICC, Intel's
-proprietary compiler.
+proprietary compiler. Type 'make' to compile. It might need gnu make.
 
 The default setup shows (left-to-right, top-to-bottom):
 0) Current camera view
