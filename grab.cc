@@ -74,23 +74,23 @@ class VideoDevice /*{{{*/
         VideoDevice(const char *);
         ~VideoDevice(void);
 
-        VideoCapability& getCap(void);
-        VideoWindow&     getWin(void);
-        VideoPicture&    getPic(void);
+        VideoCapability& getCap(void) const;
+        VideoWindow&     getWin(void) const;
+        VideoPicture&    getPic(void) const;
 
         void setWin(const VideoWindow&);
         void setPic(const VideoPicture&);
 
         void setParams(const uint32_t width, const uint32_t height, const uint16_t palette = VIDEO_PALETTE_RGB32, const uint16_t depth = 0);
-        pair<pair<uint32_t, uint32_t>, uint16_t> getParams(void);
+        pair<pair<uint32_t, uint32_t>, uint16_t> getParams(void) const;
 
         void getFrame(char *buf);
 
-        uint16_t getBrightness(void);
-        uint16_t getHue(void);
-        uint16_t getColour(void);
-        uint16_t getContrast(void);
-        uint16_t getWhiteness(void);
+        const uint16_t getBrightness(void) const;
+        const uint16_t getHue(void) const;
+        const uint16_t getColour(void) const;
+        const uint16_t getContrast(void) const;
+        const uint16_t getWhiteness(void) const;
 
         void setBrightness(const uint16_t);
         void setHue(const uint16_t);
@@ -105,7 +105,7 @@ class VideoDevice /*{{{*/
         int dev;
 };
 
-ostream& operator<< (ostream &os, VideoDevice& v)
+ostream& operator<< (ostream &os, const VideoDevice& v)
 {
     os << "Cap: " << v.getCap() << endl
        << "Win: " << v.getWin() << endl
@@ -134,7 +134,7 @@ VideoDevice::~VideoDevice(void)
 }
 
 
-VideoCapability& VideoDevice::getCap(void)
+VideoCapability& VideoDevice::getCap(void) const
 {
     static VideoCapability cap;
     if (ioctl(dev, VIDIOCGCAP, &cap) < 0)
@@ -142,7 +142,7 @@ VideoCapability& VideoDevice::getCap(void)
     return cap;
 }
 
-VideoWindow& VideoDevice::getWin(void)
+VideoWindow& VideoDevice::getWin(void) const
 {
     static VideoWindow win;
     if (ioctl(dev, VIDIOCGWIN, &win) < 0)
@@ -150,7 +150,7 @@ VideoWindow& VideoDevice::getWin(void)
     return win;
 }
 
-VideoPicture& VideoDevice::getPic(void)
+VideoPicture& VideoDevice::getPic(void) const
 {
     static VideoPicture vpic;
     if (ioctl(dev, VIDIOCGPICT, &vpic) < 0)
@@ -196,23 +196,23 @@ void VideoDevice::setParams(const uint32_t width, const uint32_t height, const u
     }
 }
 
-uint16_t VideoDevice::getBrightness(void)
+const uint16_t VideoDevice::getBrightness(void) const
 {
     return this->getPic().brightness;
 }
-uint16_t VideoDevice::getHue(void)
+const uint16_t VideoDevice::getHue(void) const
 {
     return this->getPic().hue;
 }
-uint16_t VideoDevice::getColour(void)
+const uint16_t VideoDevice::getColour(void) const
 {
     return this->getPic().colour;
 }
-uint16_t VideoDevice::getContrast(void)
+const uint16_t VideoDevice::getContrast(void) const
 {
     return this->getPic().contrast;
 }
-uint16_t VideoDevice::getWhiteness(void)
+const uint16_t VideoDevice::getWhiteness(void) const
 {
     return this->getPic().whiteness;
 }
@@ -248,7 +248,7 @@ void VideoDevice::setWhiteness(const uint16_t x)
     this->setPic(p);
 }
 
-pair<pair<uint32_t, uint32_t>, uint16_t> VideoDevice::getParams(void)
+pair<pair<uint32_t, uint32_t>, uint16_t> VideoDevice::getParams(void) const
 {
     static pair<pair<uint32_t, uint32_t>, uint16_t> data;
 
