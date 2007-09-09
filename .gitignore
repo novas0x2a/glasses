@@ -1,6 +1,6 @@
 core
-grab
-grab-debug
+glasses
+glasses-debug
 old
 *.ppm
 *.o

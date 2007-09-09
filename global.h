@@ -14,6 +14,9 @@ typedef v8qi Pixel;
 inline byte& R(const Pixel &p) {return ((byte*)&p)[2];}
 inline byte& G(const Pixel &p) {return ((byte*)&p)[1];}
 inline byte& B(const Pixel &p) {return ((byte*)&p)[0];}
+inline byte& A(const Pixel &p) {return ((byte*)&p)[3];}
+
+inline Pixel RGB(byte r, byte g, byte b, byte a = 0) {return (Pixel){b,g,r,a};}
 
 template<typename T>
 inline std::string stringify(const T& x)
