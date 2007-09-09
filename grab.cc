@@ -1,300 +1,25 @@
 #include <iostream>
-#include <fstream>
 #include <string>
-#include <sstream>
 #include <cassert>
 #include <cmath>
-#include <vector>
 #include <cerrno>
 
+// For open
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
 
+// For SDL
 #include <SDL.h>
 #include <SDL_ttf.h>
 
-#include <linux/types.h>
-#include <linux/videodev.h>
 #include <xmmintrin.h>
 
+#include "global.h"
+#include "video.h"
+#include "v4l.h"
+
 using namespace std;
-
-#define likely(x)       __builtin_expect((x),1)
-#define unlikely(x)     __builtin_expect((x),0)
-
-typedef unsigned char byte;
-typedef byte v8qi __attribute__((vector_size (4)));
-typedef v8qi Pixel;
-
-inline byte& R(const Pixel &p) {return ((byte*)&p)[2];}
-inline byte& G(const Pixel &p) {return ((byte*)&p)[1];}
-inline byte& B(const Pixel &p) {return ((byte*)&p)[0];}
-
-
-template<typename T>
-inline std::string stringify(const T& x)
-{
-    ostringstream o;
-    o << x;
-    return o.str();
-}
-
-/*{{{ Print Overloads */
-typedef struct video_capability VideoCapability;
-typedef struct video_window     VideoWindow;
-typedef struct video_picture    VideoPicture;
-
-ostream& operator<< (ostream& os, const VideoCapability& a) {
-    os  << "Name["        << a.name
-        << "] Type["      << a.type
-        << "] Channels["  << a.channels
-        << "] Audios["    << a.audios
-        << "] MaxWidth["  << a.maxwidth
-        << "] MaxHeight[" << a.maxheight
-        << "] MinWidth["  << a.minwidth
-        << "] MinHeight["  << a.minheight << "]";
-    return os;
-}
-
-ostream& operator<< (ostream& os, const VideoWindow& a) {
-    os  << "Pos[" << a.x << "," << a.y << "] Size[" << a.width << "," << a.height << "]";
-    return os;
-}
-
-ostream& operator<< (ostream& os, const VideoPicture& a) {
-    os  << "Brightness["    << a.brightness
-        << "] Hue["         << a.hue
-        << "] Color["       << a.colour
-        << "] Contrast["    << a.contrast
-        << "] Whiteness["   << a.whiteness
-        << "] Depth["       << a.depth
-        << "] Palette["     << a.palette << "]";
-    return os;
-}/*}}}*/
-
-#if 0
-class VideoDevice
-{
-    public:
-        void setParams(const uint32_t width, const uint32_t height, const uint16_t palette = VIDEO_PALETTE_RGB32, const uint16_t depth = 0);
-        pair<pair<uint32_t, uint32_t>, uint16_t> getParams(void) const;
-
-        void getFrame(char *buf);
-
-        const uint16_t getBrightness(void) const;
-        const uint16_t getHue(void) const;
-        const uint16_t getColour(void) const;
-        const uint16_t getContrast(void) const;
-        const uint16_t getWhiteness(void) const;
-
-        void setBrightness(const uint16_t);
-        void setHue(const uint16_t);
-        void setColour(const uint16_t);
-        void setContrast(const uint16_t);
-        void setWhiteness(const uint16_t);
-
-        uint32_t width, height;
-        uint16_t depth;
-}
-#endif
-
-class VideoDevice /*{{{*/
-{
-    public:
-
-        VideoDevice(const char *);
-        ~VideoDevice(void);
-
-        friend ostream& operator<< (ostream &os, const VideoDevice& v);
-
-        void setParams(const uint32_t width, const uint32_t height, const uint16_t palette = VIDEO_PALETTE_RGB32, const uint16_t depth = 0);
-        void getFrame(byte *buf);
-
-        const uint16_t getBrightness(void) const;
-        const uint16_t getHue(void) const;
-        const uint16_t getColour(void) const;
-        const uint16_t getContrast(void) const;
-        const uint16_t getWhiteness(void) const;
-
-        void setBrightness(const uint16_t);
-        void setHue(const uint16_t);
-        void setColour(const uint16_t);
-        void setContrast(const uint16_t);
-        void setWhiteness(const uint16_t);
-
-        uint32_t getWidth(void)  const {return width;};
-        uint32_t getHeight(void) const {return height;};
-        uint32_t getDepth(void)  const {return depth;};
-
-    protected:
-        VideoCapability& getCap(void) const;
-        VideoWindow&     getWin(void) const;
-        VideoPicture&    getPic(void) const;
-
-        void setWin(const VideoWindow&);
-        void setPic(const VideoPicture&);
-
-    private:
-        uint32_t width, height;
-        uint16_t depth;
-        const string devname;
-        int dev;
-};
-
-ostream& operator<< (ostream &os, const VideoDevice& v)
-{
-    os << "Cap: " << v.getCap() << endl
-       << "Win: " << v.getWin() << endl
-       << "Pic: " << v.getPic();
-    return os;
-}
-
-VideoDevice::VideoDevice(const char *device) : devname(device)
-{
-    if ((dev = open(devname.c_str(), O_RDONLY)) < 0)
-        throw string("Could not open video device");
-
-    VideoCapability cap = this->getCap();
-    VideoWindow     win = this->getWin();
-    VideoPicture    pic = this->getPic();
-
-    width  = win.width;
-    height = win.height;
-    depth  = pic.depth;
-}
-
-VideoDevice::~VideoDevice(void)
-{
-    if (close(dev) < 0)
-        throw string("Could not close video device");
-}
-
-
-VideoCapability& VideoDevice::getCap(void) const
-{
-    static VideoCapability cap;
-    if (ioctl(dev, VIDIOCGCAP, &cap) < 0)
-        throw string("Couldn't get capabilities");
-    return cap;
-}
-
-VideoWindow& VideoDevice::getWin(void) const
-{
-    static VideoWindow win;
-    if (ioctl(dev, VIDIOCGWIN, &win) < 0)
-        throw string("Couldn't get window");
-    return win;
-}
-
-VideoPicture& VideoDevice::getPic(void) const
-{
-    static VideoPicture vpic;
-    if (ioctl(dev, VIDIOCGPICT, &vpic) < 0)
-        throw string("Couldn't get picture");
-    return vpic;
-}
-
-void VideoDevice::setWin(const VideoWindow& win)
-{
-    VideoWindow w;
-    if(ioctl(dev, VIDIOCSWIN, &win) < 0)
-        throw string("Couldn't set window");
-    if(ioctl(dev, VIDIOCGWIN, &w) < 0)
-        throw string("Couldn't get window");
-
-    width  = w.width;
-    height = w.height;
-}
-
-void VideoDevice::setPic(const VideoPicture& pic)
-{
-    VideoPicture p;
-    if(ioctl(dev, VIDIOCSPICT, &pic) < 0)
-        throw string("Couldn't set picture");
-    if(ioctl(dev, VIDIOCGPICT, &p) < 0)
-        throw string("Couldn't set picture");
-    depth = p.depth;
-}
-
-void VideoDevice::setParams(const uint32_t width, const uint32_t height, const uint16_t palette, const uint16_t depth)
-{
-    VideoWindow w = this->getWin();
-    w.width  = width;
-    w.height = height;
-    this->setWin(w);
-
-    if (depth != 0)
-    {
-        VideoPicture p = this->getPic();
-        p.depth   = depth;
-        p.palette = palette;
-        this->setPic(p);
-    }
-}
-
-const uint16_t VideoDevice::getBrightness(void) const
-{
-    return this->getPic().brightness;
-}
-const uint16_t VideoDevice::getHue(void) const
-{
-    return this->getPic().hue;
-}
-const uint16_t VideoDevice::getColour(void) const
-{
-    return this->getPic().colour;
-}
-const uint16_t VideoDevice::getContrast(void) const
-{
-    return this->getPic().contrast;
-}
-const uint16_t VideoDevice::getWhiteness(void) const
-{
-    return this->getPic().whiteness;
-}
-
-void VideoDevice::setBrightness(const uint16_t x)
-{
-    VideoPicture p = this->getPic();
-    p.brightness = x;
-    this->setPic(p);
-}
-void VideoDevice::setHue(const uint16_t x)
-{
-    VideoPicture p = this->getPic();
-    p.hue = x;
-    this->setPic(p);
-}
-void VideoDevice::setColour(const uint16_t x)
-{
-    VideoPicture p = this->getPic();
-    p.colour = x;
-    this->setPic(p);
-}
-void VideoDevice::setContrast(const uint16_t x)
-{
-    VideoPicture p = this->getPic();
-    p.contrast = x;
-    this->setPic(p);
-}
-void VideoDevice::setWhiteness(const uint16_t x)
-{
-    VideoPicture p = this->getPic();
-    p.whiteness = x;
-    this->setPic(p);
-}
-
-void VideoDevice::getFrame(byte *buf)
-{
-    if (read(dev, buf, width * height * depth>>3) < 0)
-        throw string("Unable to read from device");
-}
-
-/*}}}*/
 
 typedef void (*FilterFunc)(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height);
 
@@ -322,7 +47,7 @@ MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), he
     assert(depth % 8 == 0 && depth >= 24);
     assert(windows > 0);
 
-    v = new VideoDevice("/dev/video0");
+    v = dynamic_cast<VideoDevice*>(new V4LDevice("/dev/video0"));
 
     v->setParams(width, height,
             depth == 32 ? VIDEO_PALETTE_RGB32 :
@@ -401,7 +126,7 @@ void MainWin::MainLoop(void)
                             this->ScreenShot(screen);
                             break;
                         case 'p':
-                            cerr << *this->v << endl;
+                            cerr << dynamic_cast<V4LDevice*>(this->v) << endl;
                             break;
 
                         case 'b': this->v->setBrightness(this->v->getBrightness() - 1); break;
