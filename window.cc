@@ -41,6 +41,8 @@ MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), he
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         throw string("Could not init SDL");
 
+    SDL_WM_SetCaption(PROGRAM "-" VERSION, PROGRAM);
+
     if (!(screen = SDL_SetVideoMode(width*winside, height*winside, depth, SDL_HWSURFACE)))
         throw string("Unable to set video mode: ") + SDL_GetError();
 

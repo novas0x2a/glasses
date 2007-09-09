@@ -5,3 +5,5 @@ old
 *.ppm
 *.o
 *.swp
+.dep
+*.tar.gz
