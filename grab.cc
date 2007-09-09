@@ -39,7 +39,7 @@ typedef struct video_capability VideoCapability;
 typedef struct video_window     VideoWindow;
 typedef struct video_picture    VideoPicture;
 
-ostream& operator<< (ostream& os, VideoCapability& a) {
+ostream& operator<< (ostream& os, const VideoCapability& a) {
     os  << "Name["        << a.name
         << "] Type["      << a.type
         << "] Channels["  << a.channels
@@ -51,12 +51,12 @@ ostream& operator<< (ostream& os, VideoCapability& a) {
     return os;
 }
 
-ostream& operator<< (ostream& os, VideoWindow& a) {
+ostream& operator<< (ostream& os, const VideoWindow& a) {
     os  << "Pos[" << a.x << "," << a.y << "] Size[" << a.width << "," << a.height << "]";
     return os;
 }
 
-ostream& operator<< (ostream& os, VideoPicture& a) {
+ostream& operator<< (ostream& os, const VideoPicture& a) {
     os  << "Brightness["    << a.brightness
         << "] Hue["         << a.hue
         << "] Color["       << a.colour
@@ -86,12 +86,32 @@ class VideoDevice /*{{{*/
 
         void getFrame(char *buf);
 
+        uint16_t getBrightness(void);
+        uint16_t getHue(void);
+        uint16_t getColour(void);
+        uint16_t getContrast(void);
+        uint16_t getWhiteness(void);
+
+        void setBrightness(const uint16_t);
+        void setHue(const uint16_t);
+        void setColour(const uint16_t);
+        void setContrast(const uint16_t);
+        void setWhiteness(const uint16_t);
+
         uint32_t width, height;
         uint16_t depth;
     private:
         const string devname;
         int dev;
 };
+
+ostream& operator<< (ostream &os, VideoDevice& v)
+{
+    os << "Cap: " << v.getCap() << endl
+       << "Win: " << v.getWin() << endl
+       << "Pic: " << v.getPic();
+    return os;
+}
 
 VideoDevice::VideoDevice(const char *device) : devname(device)
 {
@@ -174,6 +194,58 @@ void VideoDevice::setParams(const uint32_t width, const uint32_t height, const u
         p.palette = palette;
         this->setPic(p);
     }
+}
+
+uint16_t VideoDevice::getBrightness(void)
+{
+    return this->getPic().brightness;
+}
+uint16_t VideoDevice::getHue(void)
+{
+    return this->getPic().hue;
+}
+uint16_t VideoDevice::getColour(void)
+{
+    return this->getPic().colour;
+}
+uint16_t VideoDevice::getContrast(void)
+{
+    return this->getPic().contrast;
+}
+uint16_t VideoDevice::getWhiteness(void)
+{
+    return this->getPic().whiteness;
+}
+
+void VideoDevice::setBrightness(const uint16_t x)
+{
+    VideoPicture p = this->getPic();
+    p.brightness = x;
+    this->setPic(p);
+}
+void VideoDevice::setHue(const uint16_t x)
+{
+    VideoPicture p = this->getPic();
+    p.hue = x;
+    this->setPic(p);
+}
+void VideoDevice::setColour(const uint16_t x)
+{
+    VideoPicture p = this->getPic();
+    p.colour = x;
+    this->setPic(p);
+}
+void VideoDevice::setContrast(const uint16_t x)
+{
+    VideoPicture p = this->getPic();
+    p.contrast = x;
+    this->setPic(p);
+}
+void VideoDevice::setWhiteness(const uint16_t x)
+{
+    VideoPicture p = this->getPic();
+    p.whiteness = x;
+    this->setPic(p);
 }
 
 pair<pair<uint32_t, uint32_t>, uint16_t> VideoDevice::getParams(void)
@@ -307,6 +379,21 @@ void MainWin::MainLoop(void)
                         case 's':
                             this->ScreenShot(screen);
                             break;
+                        case 'p':
+                            cerr << *this->v << endl;
+                            break;
+
+                        case 'b': this->v->setBrightness(this->v->getBrightness() - 1); break;
+                        case 'B': this->v->setBrightness(this->v->getBrightness() + 1); break;
+                        case 'h': this->v->setHue(this->v->getHue() - 1); break;
+                        case 'H': this->v->setHue(this->v->getHue() + 1); break;
+                        case 'c': this->v->setColour(this->v->getColour() - 1); break;
+                        case 'C': this->v->setColour(this->v->getColour() + 1); break;
+                        case 'n': this->v->setContrast(this->v->getContrast() - 1); break;
+                        case 'N': this->v->setContrast(this->v->getContrast() + 1); break;
+                        case 'w': this->v->setWhiteness(this->v->getWhiteness() - 1); break;
+                        case 'W': this->v->setWhiteness(this->v->getWhiteness() + 1); break;
+
                         default:
                             break;
                     }
