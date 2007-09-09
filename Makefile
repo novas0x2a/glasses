@@ -1,27 +1,41 @@
-PROG     := grab
+PROGRAM  := glasses
+VERSION  := 0.01
+
 SRC      := main.cc v4l.cc window.cc
-CXXFLAGS := `pkg-config --cflags sdl` -Wall -Wextra -Wno-unused-parameter
+HEADERS  := global.h v4l.h video.h window.h
+CXXFLAGS := `pkg-config --cflags-only-other sdl` $(subst -I,-isystem,$(shell pkg-config --cflags-only-I sdl)) -Wall -Wextra -Wno-unused-parameter  -DVERSION="\"$(VERSION)\""
 LDFLAGS  := `pkg-config --libs sdl` -lSDL_ttf
 
-DBGFLAGS := -g3 -ggdb
-RELFLAGS := -O3
+DBGFLAGS := -g3 -ggdb -DPROGRAM="\"$(PROGRAM)-debug\""
+RELFLAGS := -O3 -DPROGRAM="\"$(PROGRAM)\""
 
-all: $(PROG)
-debug: $(PROG)-debug
+all:   $(PROGRAM)
+debug: $(PROGRAM)-debug
 
-$(PROG): $(SRC:cc=o)
+include .dep
+
+$(PROGRAM): $(SRC:cc=o)
 	g++ $(CXXFLAGS) $(RELFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(PROG)-debug: $(SRC:.cc=-debug.o)
+$(PROGRAM)-debug: $(SRC:.cc=-debug.o)
 	g++ $(CXXFLAGS) $(DBGFLAGS) $^ -o $@ $(LDFLAGS)
 
 %.o : %.cc
-	g++ $(CXXFLAGS) $(RELFLAGS) $^ -c -o $@
+	g++ $(CXXFLAGS) $(RELFLAGS) $(filter %.cc,$^) -c -o $@
 
 %-debug.o : %.cc
-	g++ $(CXXFLAGS) $(DBGFLAGS)  $^ -c -o $@
+	g++ $(CXXFLAGS) $(DBGFLAGS)  $(filter %.cc,$^) -c -o $@
 
 clean:
-	rm -f $(PROG) *.o
+	rm -f $(PROGRAM) $(PROGRAM)-debug *.o
 
-.PHONY: all clean
+.dep: $(SRC)
+	g++ -MM $(CXXFLAGS) $^ > $@
+
+distclean: clean
+	rm -f .dep $(PROGRAM)-$(VERSION).tar.gz
+
+dist: $(SRC) $(HEADERS)
+	tar czf $(PROGRAM)-$(VERSION).tar.gz --transform s,^,$(PROGRAM)-$(VERSION)/, $(DISTFILES) $(sort $(filter-out %.o:,$(shell g++ -MM $(CXXFLAGS) $(filter %.cc,$^))))
+
+.PHONY: all clean dist distclean
