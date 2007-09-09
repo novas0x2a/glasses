@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         MainWin win(320, 240, 32, 5);
 
         win.AddFilter(invert,  1);
-        win.AddFilter(copy,    2);
+        win.AddFilter(replace_blue, 2);
         win.AddFilter(red,     3);
         win.AddFilter(green,   4);
         win.AddFilter(blue,    5);
