@@ -199,9 +199,9 @@ typedef unsigned char byte;
 typedef byte v8qi __attribute__((vector_size (4)));
 typedef v8qi Pixel;
 
-inline byte& r(const Pixel &p) {return ((byte*)&p)[2];}
-inline byte& g(const Pixel &p) {return ((byte*)&p)[1];}
-inline byte& b(const Pixel &p) {return ((byte*)&p)[0];}
+inline byte& R(const Pixel &p) {return ((byte*)&p)[2];}
+inline byte& G(const Pixel &p) {return ((byte*)&p)[1];}
+inline byte& B(const Pixel &p) {return ((byte*)&p)[0];}
 
 typedef void (*FilterFunc)(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height);
 
@@ -379,7 +379,7 @@ void MainWin::ScreenShot(SDL_Surface *s)
             for (int32_t x = 0; x < s->w; ++x)
             {
                 uint32_t off = y*s->w + x;
-                fprintf(f, "%c%c%c", r(p[off]), g(p[off]), b(p[off]));
+                fprintf(f, "%c%c%c", R(p[off]), G(p[off]), B(p[off]));
             }
         fclose(f);
         return;
@@ -409,62 +409,25 @@ void red(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heigh
 void green(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     for (uint32_t y = 0; y < height*width; ++y)
-    {
-        r(out[y]) = 0;
-        g(out[y]) = g(in[y]);
-        b(out[y]) = 0;
-    }
+        out[y] = (in[y] & (Pixel){0,0xff,0,0});
 }
 
 void blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     for (uint32_t y = 0; y < height*width; ++y)
     {
-        b(out[y]) = (r(in[y]) + g(in[y]))/2;
-        r(out[y]) = r(in[y]);
-        g(out[y]) = g(in[y]);
-        //out[y] = (in[y] * (Pixel){1,0,0,0});
+        B(out[y]) = (R(in[y]) + G(in[y]))/2;
+        R(out[y]) = R(in[y]);
+        G(out[y]) = G(in[y]);
     }
 }
-
-#if 0
-void red(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
-{
-    for (uint32_t y = 0; y < height*width; ++y)
-    {
-            r(out[y]) = r(in[y]);
-            g(out[y]) = 0;
-            b(out[y]) = 0;
-    }
-}
-
-void green(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
-{
-    for (uint32_t y = 0; y < height*width; ++y)
-    {
-        r(out[y]) = 0;
-        g(out[y]) = g(in[y]);
-        b(out[y]) = 0;
-    }
-}
-
-void blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
-{
-    for (uint32_t y = 0; y < height*width; ++y)
-    {
-        r(out[y]) = 0;
-        g(out[y]) = 0;
-        b(out[y]) = b(in[y]);
-    }
-}
-#endif
 
 int main(int argc, char *argv[])
 {
     assert(sizeof(Pixel)   == 4);
 
     try {
-        MainWin win(320, 240, 32, 3);
+        MainWin win(320, 240, 32, 4);
         win.AddFilter(red,   1);
         win.AddFilter(green, 2);
         win.AddFilter(blue,  3);
