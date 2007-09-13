@@ -1,6 +1,8 @@
 PROGRAM  := glasses
 VERSION  := 0.01
 
+DISTFILES := README scary.jpg subtle.jpg
+
 SRC      := main.cc v4l.cc window.cc
 HEADERS  := global.h v4l.h video.h window.h
 CXXFLAGS := `pkg-config --cflags-only-other sdl` $(subst -I,-isystem,$(shell pkg-config --cflags-only-I sdl)) -Wall -Wextra -Wno-unused-parameter  -DVERSION="\"$(VERSION)\""
