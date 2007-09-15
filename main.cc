@@ -46,24 +46,6 @@ void invert(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t he
         out[y] = RGB(0xff,0xff,0xff,0xff) - in[y];
 }
 
-void cyan(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
-{
-    red(in, out, width, height);
-    invert(out, out, width, height);
-}
-
-void magenta(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
-{
-    green(in, out, width, height);
-    invert(out, out, width, height);
-}
-
-void yellow(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
-{
-    blue(in, out, width, height);
-    invert(out, out, width, height);
-}
-
 void text(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     static SDL_Surface *f = SDL_CreateRGBSurfaceFrom((char*)out, width, height, 32, width*4, 0x00ff0000, 0x0000ff00, 0x000000ff, 0);
@@ -114,9 +96,6 @@ void corr(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
 int main(int argc, char *argv[])
 {
     try {
-        //MainWin win(320, 240, 32, 2);
-        //win.AddFilter(corr,  1);
-
         MainWin win(320, 240, 32, 5);
 
         win.AddFilter(invert,  1);
@@ -124,10 +103,9 @@ int main(int argc, char *argv[])
         win.AddFilter(red,     3);
         win.AddFilter(green,   4);
         win.AddFilter(blue,    5);
-        win.AddFilter(cyan,    6);
-        win.AddFilter(magenta, 7);
-        win.AddFilter(corr,  8);
-
+        win.AddFilter(invert,  6, 3);  // cyan
+        win.AddFilter(invert,  7, 4);  // magenta
+        win.AddFilter(invert,  8, 5);  // yellow
 
         win.MainLoop();
     } catch (string p) {

@@ -57,8 +57,8 @@ MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), he
     for (uint16_t i = 1; i < windows; ++i)
         framebuf[i] = framebuf[0] + (i * v->getWidth() * v->getHeight() * (v->getDepth()>>3));
 
-    funcs = new FilterFunc[windows];
-    memset(funcs, 0, sizeof(FilterFunc) * windows);
+    funcs = new Filter[windows];
+    memset(funcs, 0, sizeof(Filter) * windows);
 }
 
 MainWin::~MainWin(void)
@@ -134,9 +134,9 @@ void MainWin::MainLoop(void)
         v->getFrame(framebuf[0]);
 
         for (uint16_t i = 1; i < windows; ++i)
-            if (likely(funcs[i] != NULL))
+            if (likely(funcs[i].f != NULL))
             {
-                funcs[i]((Pixel*)framebuf[0], (Pixel*)framebuf[i], v->getWidth(), v->getHeight());
+                funcs[i].f((Pixel*)framebuf[funcs[i].src], (Pixel*)framebuf[i], v->getWidth(), v->getHeight());
                 SDL_Rect r = {i % winside, i / winside, 0, 0};
                 r.x *= width;
                 r.y *= height;
@@ -199,12 +199,14 @@ void MainWin::ScreenShot(SDL_Surface *s)
     }
 }
 
-void MainWin::AddFilter(FilterFunc f, uint8_t idx)
+void MainWin::AddFilter(FilterFunc f, uint8_t idx, uint8_t src)
 {
-    if (idx > windows-1)
+    if (idx > windows-1 || src > windows-1)
         throw string("Illegal filter func index");
+    if (src >= idx)
+        throw string("Illegal filter source (must be <= index)");
 
-    funcs[idx] = f;
+    funcs[idx] = (Filter){f, src};
 }
 /*}}}*/
 
