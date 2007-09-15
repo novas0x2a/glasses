@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <limits>
+#include <algorithm>
 
 #include "global.h"
 #include "window.h"
@@ -44,6 +46,22 @@ void invert(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t he
 {
     for (uint32_t y = 0; y < height*width; ++y)
         out[y] = RGB(0xff,0xff,0xff,0xff) - in[y];
+}
+
+void fixbright(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    uint8_t Min = numeric_limits<uint8_t>::max(), Max = 0;
+    for (uint32_t y = 0; y < height*width; ++y)
+    {
+        Min = min(min(Min, R(in[y])), min(G(in[y]), B(in[y])));
+        Max = max(max(Max, R(in[y])), max(G(in[y]), B(in[y])));
+    }
+    for (uint32_t y = 0; y < height*width; ++y)
+    {
+        double scale = 255/(Max-Min);
+        out[y] = (in[y] - RGB(Min, Min, Min)) * RGB(scale, scale, scale);
+    }
+
 }
 
 void text(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
@@ -98,14 +116,14 @@ int main(int argc, char *argv[])
     try {
         MainWin win(320, 240, 32, 5);
 
-        win.AddFilter(invert,  1);
-        win.AddFilter(replace_blue, 2);
-        win.AddFilter(red,     3);
-        win.AddFilter(green,   4);
-        win.AddFilter(blue,    5);
-        win.AddFilter(invert,  6, 3);  // cyan
-        win.AddFilter(invert,  7, 4);  // magenta
-        win.AddFilter(invert,  8, 5);  // yellow
+        win.AddFilter(fixbright, 1, 0);
+        win.AddFilter(invert,    2, 1);
+        win.AddFilter(red,       3, 1);
+        win.AddFilter(green,     4, 1);
+        win.AddFilter(blue,      5, 1);
+        win.AddFilter(invert,    6, 3);  // cyan
+        win.AddFilter(invert,    7, 4);  // magenta
+        win.AddFilter(invert,    8, 5);  // yellow
 
         win.MainLoop();
     } catch (string p) {
