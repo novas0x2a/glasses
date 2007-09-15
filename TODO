@@ -1,0 +1,3 @@
+ * Foreground/background detection
+ * Make brightness filter smarter (outlier detection, nonlinear)
+ * Standard filters for camera so they don't have to take up frames
