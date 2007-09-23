@@ -1,5 +1,5 @@
 PROGRAM  := glasses
-VERSION  := 0.01
+VERSION  := 0.02-pre
 
 DISTFILES := README scary.jpg subtle.jpg
 
@@ -15,6 +15,9 @@ all:   $(PROGRAM)
 debug: $(PROGRAM)-debug
 
 include .dep
+
+run: $(PROGRAM)
+	./$(PROGRAM)
 
 $(PROGRAM): $(SRC:cc=o)
 	g++ $(CXXFLAGS) $(RELFLAGS) $^ -o $@ $(LDFLAGS)
