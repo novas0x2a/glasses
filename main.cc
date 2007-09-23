@@ -1,11 +1,11 @@
 #include <iostream>
 #include <string>
-#include <cmath>
 #include <limits>
 #include <algorithm>
 
 #include "global.h"
 #include "window.h"
+#include "hist.h"
 
 using namespace std;
 
@@ -51,17 +51,34 @@ void invert(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t he
 void fixbright(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     uint8_t Min = numeric_limits<uint8_t>::max(), Max = 0;
+
     for (uint32_t y = 0; y < height*width; ++y)
     {
         Min = min(min(Min, R(in[y])), min(G(in[y]), B(in[y])));
         Max = max(max(Max, R(in[y])), max(G(in[y]), B(in[y])));
     }
+
+    double scale = 255/(Max-Min);
+
+    for (uint32_t y = 0; y < height*width; ++y)
+        out[y] = (in[y] - RGB(Min, Min, Min)) * RGB(scale, scale, scale);
+}
+
+void rgb(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    static Histogram<double> bin(out, width, height, 3);
+
+    bin.clear();
+
     for (uint32_t y = 0; y < height*width; ++y)
     {
-        double scale = 255/(Max-Min);
-        out[y] = (in[y] - RGB(Min, Min, Min)) * RGB(scale, scale, scale);
+        bin[0] += R(out[y]) / V(out[y]);
+        bin[1] += G(out[y]) / V(out[y]);
+        bin[2] += B(out[y]) / V(out[y]);
+        out[y] = in[y];
     }
 
+    bin.draw();
 }
 
 void text(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
@@ -78,7 +95,6 @@ void text(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
     SDL_FreeSurface(txt);
 }
 
-#define V(x) sqrt(pow((double)R((x)),2) + pow((double)G((x)),2) + pow((double)B((x)),2))
 void corr(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     double sum_sq_x = 0, sum_sq_y = 0, sum_coproduct = 0;
@@ -116,11 +132,11 @@ int main(int argc, char *argv[])
     try {
         MainWin win(320, 240, 32, 5);
 
-        win.AddFilter(fixbright, 1, 0);
-        win.AddFilter(invert,    2, 1);
-        win.AddFilter(red,       3, 1);
-        win.AddFilter(green,     4, 1);
-        win.AddFilter(blue,      5, 1);
+        win.AddFilter(rgb,       1, 0);
+        win.AddFilter(invert,    2, 0);
+        win.AddFilter(red,       3, 0);
+        win.AddFilter(green,     4, 0);
+        win.AddFilter(blue,      5, 0);
         win.AddFilter(invert,    6, 3);  // cyan
         win.AddFilter(invert,    7, 4);  // magenta
         win.AddFilter(invert,    8, 5);  // yellow
