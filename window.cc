@@ -25,7 +25,7 @@ MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), he
     assert(depth % 8 == 0 && depth >= 24);
     assert(windows > 0);
 
-    v = dynamic_cast<VideoDevice*>(new V4LDevice("/dev/video0"));
+    v = new V4LDevice("/dev/video0");
 
     v->setParams(width, height,
             depth == 32 ? VIDEO_PALETTE_RGB32 :
@@ -144,7 +144,7 @@ void MainWin::MainLoop(void)
                     throw string("Blit failed") + SDL_GetError();
             }
             else
-                break;
+                continue;
 
         if (unlikely(SDL_BlitSurface(frame[0], NULL, screen, NULL) != 0))
             throw string("Blit failed") + SDL_GetError();

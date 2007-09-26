@@ -83,16 +83,10 @@ void rgb(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heigh
 
 void text(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    static SDL_Surface *f = SDL_CreateRGBSurfaceFrom((char*)out, width, height, 32, width*4, 0x00ff0000, 0x0000ff00, 0x000000ff, 0);
-    static TTF_Font *font = TTF_OpenFont("/usr/share/fonts/ttf-bitstream-vera/Vera.ttf", 20);
+    static Text txt(out, width, height, "/usr/share/fonts/ttf-bitstream-vera/Vera.ttf", 20);
     static uint32_t i = 0;
-
-    SDL_FillRect(f, NULL, SDL_MapRGB(f->format, 0,0,0));
-
-    SDL_Surface *txt = TTF_RenderText_Solid(font, stringify(i++).c_str(), (SDL_Color){ 0xff, 0, 0, 0});
-    if (SDL_BlitSurface(txt, NULL, f, NULL) != 0)
-        throw string("Text Blit failed: ") + SDL_GetError();
-    SDL_FreeSurface(txt);
+    memcpy(out, in, width * height * sizeof(Pixel));
+    txt.draw(stringify(i++).c_str(), 0xff, 0xff, 0);
 }
 
 void corr(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
@@ -127,19 +121,48 @@ void corr(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
     cerr << cov_x_y / (pop_sd_x * pop_sd_y) << endl;
 }
 
+void gray(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    for (uint32_t i = 0; i < width*height; ++i)
+        out[i] = RGB(V(in[i]), V(in[i]), V(in[i]));
+
+}
+
+void edge(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    double val;
+    static Text txt(out, width, height, "/usr/share/fonts/ttf-bitstream-vera/Vera.ttf", 20);
+    static uint32_t j = 0;
+    for (uint32_t i = 1; i < width*height-1; ++i)
+    {
+        //val = abs(V(in[i-1]) - 2*V(in[i]) + V(in[i+1]));
+        val = abs(-V(in[i-1]) + V(in[i+1]))/2;
+        out[i] = val > j ? RGB(0xff,0xff,0xff) : RGB(0,0,0);
+    }
+    txt.draw(stringify(j).c_str(), 0xff, 0, 0);
+    if (j > 50)
+        j = 0;
+    else
+        j++;
+}
+
 int main(int argc, char *argv[])
 {
     try {
-        MainWin win(320, 240, 32, 5);
+        MainWin win(176, 144, 32, 10);
 
         win.AddFilter(rgb,       1, 0);
         win.AddFilter(invert,    2, 0);
-        win.AddFilter(red,       3, 0);
-        win.AddFilter(green,     4, 0);
-        win.AddFilter(blue,      5, 0);
-        win.AddFilter(invert,    6, 3);  // cyan
-        win.AddFilter(invert,    7, 4);  // magenta
-        win.AddFilter(invert,    8, 5);  // yellow
+        win.AddFilter(text,      3, 0);
+        win.AddFilter(gray,      4, 0);
+        win.AddFilter(edge,      5, 4);
+
+        win.AddFilter(red,       8, 0);
+        win.AddFilter(green,     9, 0);
+        win.AddFilter(blue,     10, 0);
+        win.AddFilter(invert,   12, 8);   // cyan
+        win.AddFilter(invert,   13, 9);   // magenta
+        win.AddFilter(invert,   14, 10);  // yellow
 
         win.MainLoop();
     } catch (string p) {
