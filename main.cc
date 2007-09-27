@@ -131,12 +131,75 @@ void gray(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
 void edge(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     double val;
+    for (uint32_t i = 1; i < width*height-1; ++i)
+    {
+        val = abs(-V(in[i-1]) + V(in[i+1]))/2;
+        out[i] = val > 15 ? RGB(0xff,0xff,0xff) : RGB(0,0,0);
+    }
+}
+
+inline Pixel& get(Pixel *array, const uint32_t x, const uint32_t y, const uint32_t width) {return array[y*width + x];}
+
+void colorize(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    static Pixel color[5];
+    int32_t idx = 0;
+    static bool done = 0;
+    if (!done++)
+    {
+        srand(time(NULL));
+        for (uint32_t i = 0; i < 5; ++i)
+            color[i] = RGB(rand() % 255, rand() % 255, rand() % 255);
+    }
+    for (uint32_t y = 0; y < height; ++y)
+    {
+        idx = 0;
+        for (uint32_t x = 0; x < width; ++x)
+        {
+            static bool chg,last;
+            chg = V(get(const_cast<Pixel*>(in), x, y, width));
+            if (!last && chg)
+                idx = (idx + 1) % 5;
+            get(out, x, y, width) = color[idx];
+            last = chg;
+        }
+    }
+}
+
+inline uint8_t idx(const Pixel *array, const uint32_t x, const uint32_t y, const uint32_t width) {return bool(R(get(const_cast<Pixel*>(array), x, y, width)));}
+
+void lines(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    uint8_t sum;
+    static const uint32_t threas = 4;
+
+    for (uint32_t y = threas; y < height-threas; ++y)
+        for (uint32_t x = threas; x < width-threas; ++x)
+        {
+            sum = 0;
+            for (uint32_t i = 0; i < threas+1; ++i)
+                for (uint32_t j = 0; j < threas+1; ++j)
+                {
+                    sum += idx(in,x-i,y-j,width);
+                    sum += idx(in,x+i,y+j,width);
+                }
+            sum += idx(in,x,y,width);
+
+            if (sum > threas)
+                get(out,x,y,width) = RGB(0xff, 0xff, 0xff);
+            else
+                get(out,x,y,width) = RGB(0,0,0);
+        }
+}
+
+void edge2(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    double val;
     static Text txt(out, width, height, "/usr/share/fonts/ttf-bitstream-vera/Vera.ttf", 20);
     static uint32_t j = 0;
     for (uint32_t i = 1; i < width*height-1; ++i)
     {
-        //val = abs(V(in[i-1]) - 2*V(in[i]) + V(in[i+1]));
-        val = abs(-V(in[i-1]) + V(in[i+1]))/2;
+        val = abs(V(in[i-1]) - 2*V(in[i]) + V(in[i+1]));
         out[i] = val > j ? RGB(0xff,0xff,0xff) : RGB(0,0,0);
     }
     txt.draw(stringify(j).c_str(), 0xff, 0, 0);
@@ -149,6 +212,7 @@ void edge(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
 int main(int argc, char *argv[])
 {
     try {
+#if 0
         MainWin win(176, 144, 32, 10);
 
         win.AddFilter(rgb,       1, 0);
@@ -156,6 +220,7 @@ int main(int argc, char *argv[])
         win.AddFilter(text,      3, 0);
         win.AddFilter(gray,      4, 0);
         win.AddFilter(edge,      5, 4);
+        win.AddFilter(lines,     6, 5);
 
         win.AddFilter(red,       8, 0);
         win.AddFilter(green,     9, 0);
@@ -163,6 +228,12 @@ int main(int argc, char *argv[])
         win.AddFilter(invert,   12, 8);   // cyan
         win.AddFilter(invert,   13, 9);   // magenta
         win.AddFilter(invert,   14, 10);  // yellow
+#else
+        MainWin win(320, 240, 32, 3);
+        win.AddFilter(gray,      1, 0);
+        win.AddFilter(edge,      2, 1);
+        win.AddFilter(colorize,  3, 2);
+#endif
 
         win.MainLoop();
     } catch (string p) {
