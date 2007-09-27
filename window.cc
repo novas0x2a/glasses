@@ -106,7 +106,7 @@ void MainWin::MainLoop(void)
                             this->ScreenShot(screen);
                             break;
                         case 'p':
-                            cerr << dynamic_cast<V4LDevice*>(this->v) << endl;
+                            cerr << *dynamic_cast<V4LDevice*>(this->v) << endl;
                             break;
 
                         case 'b': this->v->setBrightness(this->v->getBrightness() - 1); break;
