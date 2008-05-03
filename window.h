@@ -6,7 +6,7 @@
 #include <SDL_ttf.h>
 
 #include "global.h"
-#include "video.h"
+#include "video/videodevice.h"
 
 typedef void (*FilterFunc)(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height);
 typedef struct {

@@ -12,8 +12,8 @@
 // For ioctl
 #include <sys/ioctl.h>
 
-#include "global.h"
-#include "video.h"
+#include "../global.h"
+#include "videodevice.h"
 #include "v4l.h"
 
 using namespace std;
@@ -56,7 +56,7 @@ ostream& operator<< (ostream &os, const V4LDevice& v)
 
 V4LDevice::V4LDevice(const char *device) : devname(device)
 {
-    if ((dev = open(devname.c_str(), O_RDONLY)) < 0)
+    if ((dev = open(device, O_RDONLY)) < 0)
         throw string("Could not open video device");
 
     VideoCapability cap = this->getCap();

@@ -4,8 +4,8 @@
 #include <iostream>
 #include <linux/types.h>
 #include <linux/videodev.h>
-#include "global.h"
-#include "video.h"
+#include "../global.h"
+#include "videodevice.h"
 
 typedef struct video_capability VideoCapability;
 typedef struct video_window     VideoWindow;

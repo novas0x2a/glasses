@@ -1,7 +1,7 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
-#include "global.h"
+#include "../global.h"
 
 class VideoDevice
 {

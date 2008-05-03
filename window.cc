@@ -9,14 +9,16 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <sys/time.h>
+#include <time.h>
+
 // For SDL
 #include <SDL.h>
 #include <SDL_ttf.h>
 
 #include "global.h"
+#include "video/v4l.h"
 #include "window.h"
-#include "video.h"
-#include "v4l.h"
 
 using namespace std;
 
