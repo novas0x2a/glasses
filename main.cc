@@ -159,7 +159,7 @@ void colorize(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t 
 
 void lines(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    uint8_t sum;
+    uint32_t sum;
     static const uint32_t threas = 4;
 
     for (uint32_t y = threas; y < height-threas; ++y)

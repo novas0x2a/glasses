@@ -33,14 +33,14 @@ Overlay::~Overlay()
 class Text : public Overlay
 {
     public:
-        Text(Pixel *data, const uint32_t width, const uint32_t height, const char *font, const uint8_t size);
+        Text(Pixel *data, const uint32_t width, const uint32_t height, const char *font, const uint32_t size);
         ~Text();
         void draw(const char* str, uint8_t r = 0, uint8_t g = 0, uint8_t b = 0) const;
     private:
         TTF_Font *font;
 };
 
-Text::Text(Pixel *data, const uint32_t width, const uint32_t height, const char *font, const uint8_t size) : Overlay(data, width, height)
+Text::Text(Pixel *data, const uint32_t width, const uint32_t height, const char *font, const uint32_t size) : Overlay(data, width, height)
 {
     this->font = TTF_OpenFont(font, size);
     if (!this->font)
@@ -65,7 +65,7 @@ template <typename T>
 class Histogram : public Overlay
 {
     public:
-        Histogram(Pixel *data, const uint32_t width, const uint32_t height, const uint8_t count);
+        Histogram(Pixel *data, const uint32_t width, const uint32_t height, const uint32_t count);
         ~Histogram();
         void draw(T peak = 0) const;
         //TODO: void setAnchor
@@ -79,7 +79,7 @@ class Histogram : public Overlay
 };
 
 template <typename T>
-Histogram<T>::Histogram(Pixel *data, const uint32_t width, const uint32_t height, const uint8_t count) : Overlay(data, width, height), count(count)
+Histogram<T>::Histogram(Pixel *data, const uint32_t width, const uint32_t height, const uint32_t count) : Overlay(data, width, height), count(count)
 {
     bins = (T*)malloc(count * sizeof(T));
 }
@@ -116,12 +116,12 @@ template <typename T>
 void Histogram<T>::draw(T peak) const
 {
     if (peak == 0)
-        for (uint8_t i = 0; i < count; ++i)
+        for (uint32_t i = 0; i < count; ++i)
             peak = max(peak, bins[i]);
 
     uint16_t bwidth = width/count;
 
-    for (uint8_t i = 0; i < count; ++i)
+    for (uint32_t i = 0; i < count; ++i)
     {
         uint16_t bheight = bins[i]/width;
         SDL_Rect tgt = {bwidth*i, height-bheight, bwidth, bheight};
@@ -132,7 +132,7 @@ void Histogram<T>::draw(T peak) const
 template <typename T>
 void Histogram<T>::clear()
 {
-    for (uint8_t i = 0; i < count; ++i)
+    for (uint32_t i = 0; i < count; ++i)
         bins[i] = 0;
 }
 
