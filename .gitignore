@@ -8,5 +8,4 @@ c.mk
 *.swp
 .dep
 *.tar.gz
-*.jpg
 .vimrc
