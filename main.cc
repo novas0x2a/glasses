@@ -96,11 +96,11 @@ void rgb_hist(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t 
 
     for (uint32_t y = 0; y < height*width; ++y)
     {
-        bin[0] += R(in[y]) / V(in[y]);
-        bin[1] += G(in[y]) / V(in[y]);
-        bin[2] += B(in[y]) / V(in[y]);
-        out[y] = RGB(0,0,0);
+        bin[0] += R(in[y]) / Vd(in[y]);
+        bin[1] += G(in[y]) / Vd(in[y]);
+        bin[2] += B(in[y]) / Vd(in[y]);
     }
+    memset(out, 0, width*height*sizeof(Pixel));
 
     bin.draw();
 }
@@ -118,7 +118,7 @@ void frame_counter(const Pixel *in, Pixel *out, const uint32_t width, const uint
 void gray(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     for (uint32_t i = 0; i < width*height; ++i)
-        out[i] = RGB(V(in[i]), V(in[i]), V(in[i]));
+        out[i] = RGB(Vd(in[i]), Vd(in[i]), Vd(in[i]));
 }
 
 // Edge-detection
@@ -127,7 +127,7 @@ void edge(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
     double val;
     for (uint32_t i = 1; i < width*height-1; ++i)
     {
-        val = abs(-V(in[i-1]) + V(in[i+1]))/2;
+        val = abs(-Vd(in[i-1]) + Vd(in[i+1]))/2;
         out[i] = val > 15 ? RGB(0xff,0xff,0xff) : RGB(0,0,0);
     }
 }
@@ -150,7 +150,7 @@ void colorize(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t 
         for (uint32_t x = 0; x < width; ++x)
         {
             static bool chg,last;
-            chg = V(get(const_cast<Pixel*>(in), x, y, width));
+            chg = Vd(get(const_cast<Pixel*>(in), x, y, width));
             if (!last && chg)
                 idx = (idx + 1) % 5;
             get(out, x, y, width) = color[idx];
@@ -166,7 +166,7 @@ void edge2(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t hei
     static uint32_t j = 0;
     for (uint32_t i = 1; i < width*height-1; ++i)
     {
-        val = abs(V(in[i-1]) - 2*V(in[i]) + V(in[i+1]));
+        val = abs(Vd(in[i-1]) - 2*Vd(in[i]) + Vd(in[i+1]));
         out[i] = val > j ? RGB(0xff,0xff,0xff) : RGB(0,0,0);
     }
     txt.draw(stringify(j).c_str(), 0xff, 0, 0);
@@ -234,14 +234,14 @@ void corr(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
     const Pixel *x = out;
     const Pixel *y = in;
 
-    mean_x = V(x[0]);
-    mean_y = V(y[0]);
+    mean_x = Vd(x[0]);
+    mean_y = Vd(y[0]);
 
     for (uint32_t i = 1; i < width*height; ++i)
     {
         sweep = (i - 1.0) / (double)i;
-        delta_x = V(x[i]) - mean_x;
-        delta_y = V(y[i]) - mean_y;
+        delta_x = Vd(x[i]) - mean_x;
+        delta_y = Vd(y[i]) - mean_y;
 
         sum_sq_x      += delta_x * delta_x * sweep;
         sum_sq_y      += delta_y * delta_y * sweep;
@@ -269,7 +269,7 @@ void opening(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t h
         for (uint32_t x = 0; x < width; ++x)
         {
             static bool chg,last;
-            chg = V(get(const_cast<Pixel*>(in), x, y, width));
+            chg = Vd(get(const_cast<Pixel*>(in), x, y, width));
             if (!last && chg)
                 idx = (idx + 1) % 5;
             get(out, x, y, width) = color[idx];
