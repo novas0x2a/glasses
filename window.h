@@ -14,6 +14,7 @@ using std::string;
 
 typedef void (*FilterFunc)(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height);
 struct Filter {
+    Filter(FilterFunc f, SDL_Surface* frame, string name, uint32_t src): f(f), frame(frame), name(name), src(src) {};
     FilterFunc f;
     SDL_Surface *frame;
     string name;

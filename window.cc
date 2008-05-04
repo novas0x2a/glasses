@@ -51,7 +51,7 @@ MainWin::MainWin(VideoDevice &_v, uint32_t _windows) : v(_v), windows(_windows+1
         throw TTFError("Could not load font");
 
     for (uint16_t i = 0; i < windows; ++i)
-        funcs.push_back((Filter){0, makeFrame(v), i == 0 ? string("source") : string(), -1});
+        funcs.push_back(Filter(0, makeFrame(v), string(i == 0 ? "source" : "None"), -1));
 }
 
 MainWin::~MainWin(void)
@@ -219,7 +219,7 @@ void MainWin::AddFilter(const char* name, FilterFunc f, uint32_t idx, uint32_t s
     if (!funcs[src].frame)
         throw ArgumentError("Create the source before you try to use it");
 
-    funcs[idx] = (Filter){f,makeFrame(v),string(name),src};
+    funcs[idx] = Filter(f,makeFrame(v),string(name),src);
 }
 /*}}}*/
 
