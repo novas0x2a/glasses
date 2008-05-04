@@ -6,6 +6,7 @@
 #include <linux/videodev.h>
 #include "../global.h"
 #include "videodevice.h"
+#include <cerrno>
 
 typedef struct video_capability VideoCapability;
 typedef struct video_window     VideoWindow;
