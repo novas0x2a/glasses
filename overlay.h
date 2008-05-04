@@ -93,17 +93,13 @@ Histogram<T>::~Histogram()
 template <typename T>
 const T& Histogram<T>::operator[] (unsigned i) const
 {
-    if (i < count)
-        return bins[i];
-    throw ArgumentError("Illegal Histogram Bin (there are only " + stringify(count) + ")");
+    return bins[i];
 }
 
 template <typename T>
 T& Histogram<T>::operator[] (unsigned i)
 {
-    if (i < count)
-        return bins[i];
-    throw ArgumentError("Illegal Histogram Bin (there are only " + stringify(count) + ")");
+    return bins[i];
 }
 
 std::ostream& operator<< (std::ostream& os, const SDL_Rect& a)
@@ -116,9 +112,14 @@ template <typename T>
 void Histogram<T>::draw(T peak) const
 {
     static const uint32_t sep = 2;
+    static T last_peak = 0;
     if (peak == 0)
         for (uint32_t i = 0; i < count; ++i)
             peak = max(peak, bins[i]);
+    if (last_peak > peak)
+        peak = last_peak;
+    else
+        last_peak = peak;
 
     uint16_t bwidth = (width-(count-1*sep))/count;
 
