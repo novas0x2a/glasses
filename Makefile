@@ -1,5 +1,5 @@
 PROGRAM  := glasses
-VERSION  := 0.02
+VERSION  := 0.03-pre
 
 DISTFILES := doc/README doc/TODO doc/scary.jpg doc/subtle.jpg Makefile c.mk
 
@@ -8,7 +8,8 @@ glasses_SRC  := $(wildcard *.cc video/*.cc utils/*.cc)
 HEADERS      := $(wildcard *.h video/*.h utils/*.h)
 LIBS         := -lSDL_ttf
 PKGS         := sdl
-DEBUG        := y
+DEBUG        := n
+PROFILE      := y
 
 PROGS    := $(PROGRAM)
 include c.mk
