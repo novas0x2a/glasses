@@ -1,7 +1,6 @@
 core
 glasses
 old
-Makefile.old
 c.mk
 *.ppm
 *.o
