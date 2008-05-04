@@ -124,19 +124,20 @@ void MainWin::MainLoop(void)
                             this->ScreenShot(screen);
                             break;
                         case 'p':
+                            // TODO: HACK. VideoDevice needs a debugString method
                             cerr << *dynamic_cast<V4LDevice*>(this->v) << endl;
                             break;
 
                         case 'b': this->v->setBrightness(this->v->getBrightness() - 1); break;
                         case 'B': this->v->setBrightness(this->v->getBrightness() + 1); break;
-                        case 'h': this->v->setHue(this->v->getHue() - 1); break;
-                        case 'H': this->v->setHue(this->v->getHue() + 1); break;
-                        case 'c': this->v->setColour(this->v->getColour() - 1); break;
-                        case 'C': this->v->setColour(this->v->getColour() + 1); break;
-                        case 'n': this->v->setContrast(this->v->getContrast() - 1); break;
-                        case 'N': this->v->setContrast(this->v->getContrast() + 1); break;
-                        case 'w': this->v->setWhiteness(this->v->getWhiteness() - 1); break;
-                        case 'W': this->v->setWhiteness(this->v->getWhiteness() + 1); break;
+                        case 'h': this->v->setHue(this->v->getHue() - 1);               break;
+                        case 'H': this->v->setHue(this->v->getHue() + 1);               break;
+                        case 'c': this->v->setColour(this->v->getColour() - 1);         break;
+                        case 'C': this->v->setColour(this->v->getColour() + 1);         break;
+                        case 'n': this->v->setContrast(this->v->getContrast() - 1);     break;
+                        case 'N': this->v->setContrast(this->v->getContrast() + 1);     break;
+                        case 'w': this->v->setWhiteness(this->v->getWhiteness() - 1);   break;
+                        case 'W': this->v->setWhiteness(this->v->getWhiteness() + 1);   break;
 
                         default:
                             break;
