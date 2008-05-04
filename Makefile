@@ -1,5 +1,5 @@
 PROGRAM  := glasses
-VERSION  := 0.02-pre
+VERSION  := 0.02
 
 DISTFILES := doc/README doc/TODO doc/scary.jpg doc/subtle.jpg Makefile c.mk
 
