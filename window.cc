@@ -137,25 +137,27 @@ void MainWin::MainLoop(void)
 
         v.getFrame(static_cast<byte*>(funcs[0].frame->pixels));
 
-        Context c("Running filters");
-        SDL_Rect r_tmp = {0,0,0,0};
-        SDL_Rect *r = NULL;
-        size_t idx;
-        vector<Filter>::const_iterator i;
-        for (idx = 0, i = funcs.begin(); i != funcs.end(); ++idx, ++i)
         {
-            if (likely(idx != 0))
+            Context c("Running filters");
+            SDL_Rect r_tmp = {0,0,0,0};
+            SDL_Rect *r = NULL;
+            size_t idx;
+            vector<Filter>::const_iterator i;
+            for (idx = 0, i = funcs.begin(); i != funcs.end(); ++idx, ++i)
             {
-                if (i->f)
-                    i->f(static_cast<Pixel*>(funcs[i->src].frame->pixels), static_cast<Pixel*>(i->frame->pixels), v.getWidth(), v.getHeight());
-                r_tmp = (SDL_Rect){idx % winside, idx / winside, 0, 0};
-                r = &r_tmp;
-                r_tmp.x *= v.getWidth();
-                r_tmp.y *= v.getHeight();
+                if (likely(idx != 0))
+                {
+                    if (i->f)
+                        i->f(static_cast<Pixel*>(funcs[i->src].frame->pixels), static_cast<Pixel*>(i->frame->pixels), v.getWidth(), v.getHeight());
+                    r_tmp = (SDL_Rect){idx % winside, idx / winside, 0, 0};
+                    r = &r_tmp;
+                    r_tmp.x *= v.getWidth();
+                    r_tmp.y *= v.getHeight();
+                }
+                // r == NULL the first time through, which is what i want for funcs[0], the source image
+                if (unlikely(SDL_BlitSurface(i->frame, NULL, screen, r) != 0))
+                    throw SDLError("Blit failed");
             }
-            // r == NULL the first time through, which is what i want for funcs[0], the source image
-            if (unlikely(SDL_BlitSurface(i->frame, NULL, screen, r) != 0))
-                throw SDLError("Blit failed");
         }
 
         avg.add(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
