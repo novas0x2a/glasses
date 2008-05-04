@@ -4,6 +4,9 @@
 #include <SDL.h>
 #include <string>
 #include "global.h"
+#include "utils/context.h"
+
+using namespace novas0x2a;
 
 class Overlay
 {
@@ -20,7 +23,7 @@ Overlay::Overlay(Pixel *data, const uint32_t width, const uint32_t height) : wid
 {
     s = SDL_CreateRGBSurfaceFrom((char*)data, width, height, 32, width*4, 0x00ff0000, 0x0000ff00, 0x000000ff, 0);
     if (!s)
-        throw std::string("Could not create overlay surface: ") + SDL_GetError();
+        throw SDL_Error(DEBUG_HERE, "Could not create overlay surface");
 }
 
 Overlay::~Overlay()
