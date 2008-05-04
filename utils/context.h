@@ -70,7 +70,6 @@ namespace novas0x2a
     {
         public:
             TTFError(const std::string& our_message) throw ();
-    
     };
 
 #define DEBUG_HERE (std::string("In [") + __PRETTY_FUNCTION__ + "]\n\tat " + \

@@ -10,7 +10,6 @@
 
 namespace novas0x2a
 {
-
     template <typename I_, typename T_>
     T_ join(I_ i, I_ end, const T_ & joiner)
     {

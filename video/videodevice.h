@@ -1,5 +1,5 @@
-#ifndef VIDEO_H
-#define VIDEO_H
+#ifndef VIDEODEVICE_H
+#define VIDEODEVICE_H
 
 #include "../global.h"
 
@@ -30,7 +30,7 @@ class VideoDevice
 
     protected:
         uint32_t width, height;
-        uint16_t depth;
+        uint32_t depth;
 };
 
 #endif
