@@ -1,7 +1,7 @@
 PROGRAM  := glasses
 VERSION  := 0.02-pre
 
-DISTFILES := doc/README doc/TODO shots/scary.jpg shots/subtle.jpg Makefile c.mk
+DISTFILES := doc/README doc/TODO doc/scary.jpg doc/subtle.jpg Makefile c.mk
 
 CC           := g++
 glasses_SRC  := main.cc video/v4l.cc window.cc utils/context.cc
