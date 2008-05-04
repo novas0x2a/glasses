@@ -227,16 +227,16 @@ int main(int argc, char *argv[])
 #endif
 
         win.MainLoop();
-    } catch (const string &p) { // TODO: The last of these really really need to go away
-        cerr << "String Error: " << p << endl;
     } catch (const Exception &e) {
         cerr << "Exception:" << endl
             << "  * "
             << e.backtrace("\n  * ")
             << e.message()
             << endl;
+    } catch (const exception &e) {
+        cerr << "Exception: " << e.what() << endl;
     } catch (...) {
-        cerr << "Ack. Really unhandled exception" << endl;
+        cerr << "Ack. Really unhandled exception." << endl;
     }
 
     return 0;

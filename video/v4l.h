@@ -52,4 +52,11 @@ class V4LDevice : public VideoDevice
         int dev;
 };
 
+class V4LError : public VideoError
+{
+    public:
+        V4LError(const std::string& our_message) throw ():
+            VideoError(our_message + " (" + strerror(errno) + ")") {};
+};
+
 #endif

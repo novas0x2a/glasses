@@ -1,6 +1,7 @@
 #ifndef VIDEODEVICE_H
 #define VIDEODEVICE_H
 
+#include "../utils/context.h"
 #include "../global.h"
 
 class VideoDevice
@@ -32,5 +33,14 @@ class VideoDevice
         uint32_t width, height;
         uint32_t depth;
 };
+
+class VideoError : public novas0x2a::Exception
+{
+    public:
+        VideoError(const std::string& our_message) throw ():
+            Exception(our_message) {};
+};
+
+
 
 #endif

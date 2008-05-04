@@ -57,7 +57,7 @@ ostream& operator<< (ostream &os, const V4LDevice& v)
 V4LDevice::V4LDevice(const char *device) : devname(device)
 {
     if ((dev = open(device, O_RDONLY)) < 0)
-        throw string("Could not open video device");
+        throw V4LError(string("Could not open video device ") + device);
 
     VideoCapability cap = this->getCap();
     VideoWindow     win = this->getWin();
@@ -71,14 +71,14 @@ V4LDevice::V4LDevice(const char *device) : devname(device)
 V4LDevice::~V4LDevice(void)
 {
     if (close(dev) < 0)
-        throw string("Could not close video device");
+        throw V4LError("Could not close video device");
 }
 
 VideoCapability& V4LDevice::getCap(void) const
 {
     static VideoCapability cap;
     if (ioctl(dev, VIDIOCGCAP, &cap) < 0)
-        throw string("Couldn't get capabilities");
+        throw V4LError("Couldn't get capabilities");
     return cap;
 }
 
@@ -86,7 +86,7 @@ VideoWindow& V4LDevice::getWin(void) const
 {
     static VideoWindow win;
     if (ioctl(dev, VIDIOCGWIN, &win) < 0)
-        throw string("Couldn't get window");
+        throw V4LError("Couldn't get window");
     return win;
 }
 
@@ -94,7 +94,7 @@ VideoPicture& V4LDevice::getPic(void) const
 {
     static VideoPicture vpic;
     if (ioctl(dev, VIDIOCGPICT, &vpic) < 0)
-        throw string("Couldn't get picture");
+        throw V4LError("Couldn't get picture");
     return vpic;
 }
 
@@ -102,9 +102,9 @@ void V4LDevice::setWin(const VideoWindow& win)
 {
     VideoWindow w;
     if(ioctl(dev, VIDIOCSWIN, &win) < 0)
-        throw string("Couldn't set window");
+        throw V4LError("Couldn't set window");
     if(ioctl(dev, VIDIOCGWIN, &w) < 0)
-        throw string("Couldn't get window");
+        throw V4LError("Couldn't get window");
 
     width  = w.width;
     height = w.height;
@@ -114,9 +114,9 @@ void V4LDevice::setPic(const VideoPicture& pic)
 {
     VideoPicture p;
     if(ioctl(dev, VIDIOCSPICT, &pic) < 0)
-        throw string("Couldn't set picture");
+        throw V4LError("Couldn't set picture");
     if(ioctl(dev, VIDIOCGPICT, &p) < 0)
-        throw string("Couldn't set picture");
+        throw V4LError("Couldn't set picture");
     depth = p.depth;
 }
 
@@ -191,5 +191,5 @@ void V4LDevice::setWhiteness(const uint16_t x)
 void V4LDevice::getFrame(byte *buf)
 {
     if (read(dev, buf, width * height * depth>>3) < 0)
-        throw string("Unable to read from device");
+        throw V4LError("Unable to read from device");
 }
