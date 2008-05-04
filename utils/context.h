@@ -1,3 +1,5 @@
+// Ideas and most of the code in this file from Paludis by Ciaran McCreesh,
+// et al. Used under the terms of the GPL v2
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
