@@ -90,7 +90,7 @@ void linear_contrast(const Pixel *in, Pixel *out, const uint32_t width, const ui
 // Histogram of the rgb pixels
 void rgb_hist(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
-    static Histogram<double> bin(out, width, height, 3);
+    static Histogram<float> bin(out, width, height, 3);
 
     bin.clear();
 
