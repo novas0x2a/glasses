@@ -1,7 +1,8 @@
 core
 glasses
-glasses-debug
 old
+Makefile.old
+c.mk
 *.ppm
 *.o
 *.swp
