@@ -159,30 +159,6 @@ void colorize(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t 
     }
 }
 
-void lines(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
-{
-    uint32_t sum;
-    static const uint32_t threas = 4;
-
-    for (uint32_t y = threas; y < height-threas; ++y)
-        for (uint32_t x = threas; x < width-threas; ++x)
-        {
-            sum = 0;
-            for (uint32_t i = 0; i < threas+1; ++i)
-                for (uint32_t j = 0; j < threas+1; ++j)
-                {
-                    sum += has_red(in,x-i,y-j,width);
-                    sum += has_red(in,x+i,y+j,width);
-                }
-            sum += has_red(in,x,y,width);
-
-            if (sum > threas)
-                get(out,x,y,width) = RGB(0xff, 0xff, 0xff);
-            else
-                get(out,x,y,width) = RGB(0,0,0);
-        }
-}
-
 void edge2(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     double val;
@@ -217,7 +193,7 @@ int main(int argc, char *argv[])
         win.AddFilter("Counter",         frame_counter, 4, 1);
         win.AddFilter("Grayscale",       gray,          5, 1);
         win.AddFilter("Edge detect",     edge,          6, 5);
-        win.AddFilter("Line detect",     lines,         7, 6);
+        win.AddFilter("Colorize",        colorize,      7, 6);
 
         win.AddFilter("Red Channel",     red,           8, 1);
         win.AddFilter("Green Channel",   green,         9, 1);
@@ -301,6 +277,31 @@ void opening(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t h
         }
     }
 }
+
+void lines(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
+{
+    uint32_t sum;
+    static const uint32_t threas = 4;
+
+    for (uint32_t y = threas; y < height-threas; ++y)
+        for (uint32_t x = threas; x < width-threas; ++x)
+        {
+            sum = 0;
+            for (uint32_t i = 0; i < threas+1; ++i)
+                for (uint32_t j = 0; j < threas+1; ++j)
+                {
+                    sum += has_red(in,x-i,y-j,width);
+                    sum += has_red(in,x+i,y+j,width);
+                }
+            sum += has_red(in,x,y,width);
+
+            if (sum > threas)
+                get(out,x,y,width) = RGB(0xff, 0xff, 0xff);
+            else
+                get(out,x,y,width) = RGB(0,0,0);
+        }
+}
+
 #endif
 
 /* vim: set fdm=marker : */
