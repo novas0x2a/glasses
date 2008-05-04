@@ -24,20 +24,20 @@ class V4LDevice : public VideoDevice
 
         friend std::ostream& operator<< (std::ostream &os, const V4LDevice& v);
 
-        void setParams(const uint32_t width, const uint32_t height, const uint16_t palette = VIDEO_PALETTE_RGB32, const uint16_t depth = 0);
+        void setParams(uint32_t width, uint32_t height, uint16_t palette = VIDEO_PALETTE_RGB32, uint16_t depth = 0);
         void getFrame(byte *buf);
 
-        const uint16_t getBrightness(void) const;
-        const uint16_t getHue(void) const;
-        const uint16_t getColour(void) const;
-        const uint16_t getContrast(void) const;
-        const uint16_t getWhiteness(void) const;
+        uint16_t getBrightness(void) const;
+        uint16_t getHue(void) const;
+        uint16_t getColour(void) const;
+        uint16_t getContrast(void) const;
+        uint16_t getWhiteness(void) const;
 
-        void setBrightness(const uint16_t);
-        void setHue(const uint16_t);
-        void setColour(const uint16_t);
-        void setContrast(const uint16_t);
-        void setWhiteness(const uint16_t);
+        void setBrightness(uint16_t);
+        void setHue(uint16_t);
+        void setColour(uint16_t);
+        void setContrast(uint16_t);
+        void setWhiteness(uint16_t);
 
     protected:
         VideoCapability& getCap(void) const;

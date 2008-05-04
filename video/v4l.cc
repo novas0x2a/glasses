@@ -120,7 +120,7 @@ void V4LDevice::setPic(const VideoPicture& pic)
     depth = p.depth;
 }
 
-void V4LDevice::setParams(const uint32_t width, const uint32_t height, const uint16_t palette, const uint16_t depth)
+void V4LDevice::setParams(uint32_t width, uint32_t height, uint16_t palette, uint16_t depth)
 {
     VideoWindow w = this->getWin();
     w.width  = width;
@@ -136,52 +136,52 @@ void V4LDevice::setParams(const uint32_t width, const uint32_t height, const uin
     }
 }
 
-const uint16_t V4LDevice::getBrightness(void) const
+uint16_t V4LDevice::getBrightness(void) const
 {
     return this->getPic().brightness;
 }
-const uint16_t V4LDevice::getHue(void) const
+uint16_t V4LDevice::getHue(void) const
 {
     return this->getPic().hue;
 }
-const uint16_t V4LDevice::getColour(void) const
+uint16_t V4LDevice::getColour(void) const
 {
     return this->getPic().colour;
 }
-const uint16_t V4LDevice::getContrast(void) const
+uint16_t V4LDevice::getContrast(void) const
 {
     return this->getPic().contrast;
 }
-const uint16_t V4LDevice::getWhiteness(void) const
+uint16_t V4LDevice::getWhiteness(void) const
 {
     return this->getPic().whiteness;
 }
 
-void V4LDevice::setBrightness(const uint16_t x)
+void V4LDevice::setBrightness(uint16_t x)
 {
     VideoPicture p = this->getPic();
     p.brightness = x;
     this->setPic(p);
 }
-void V4LDevice::setHue(const uint16_t x)
+void V4LDevice::setHue(uint16_t x)
 {
     VideoPicture p = this->getPic();
     p.hue = x;
     this->setPic(p);
 }
-void V4LDevice::setColour(const uint16_t x)
+void V4LDevice::setColour(uint16_t x)
 {
     VideoPicture p = this->getPic();
     p.colour = x;
     this->setPic(p);
 }
-void V4LDevice::setContrast(const uint16_t x)
+void V4LDevice::setContrast(uint16_t x)
 {
     VideoPicture p = this->getPic();
     p.contrast = x;
     this->setPic(p);
 }
-void V4LDevice::setWhiteness(const uint16_t x)
+void V4LDevice::setWhiteness(uint16_t x)
 {
     VideoPicture p = this->getPic();
     p.whiteness = x;
