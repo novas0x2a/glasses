@@ -17,6 +17,8 @@
 #include "v4l.h"
 
 using namespace std;
+using novas0x2a::Context;
+using novas0x2a::stringify;
 
 ostream& operator<< (ostream& os, const VideoCapability& a) {
     os  << "Name["        << a.name
@@ -56,10 +58,10 @@ ostream& operator<< (ostream &os, const V4LDevice& v)
 
 V4LDevice::V4LDevice(const char *device) : devname(device)
 {
+    Context c("While creating V4L device");
     if ((dev = open(device, O_RDONLY)) < 0)
         throw V4LError(string("Could not open video device ") + device);
 
-    VideoCapability cap = this->getCap();
     VideoWindow     win = this->getWin();
     VideoPicture    pic = this->getPic();
 
@@ -70,12 +72,14 @@ V4LDevice::V4LDevice(const char *device) : devname(device)
 
 V4LDevice::~V4LDevice(void)
 {
+    Context c("While closing V4L device");
     if (close(dev) < 0)
         throw V4LError("Could not close video device");
 }
 
 VideoCapability& V4LDevice::getCap(void) const
 {
+    Context c("While getting V4L capabilities");
     static VideoCapability cap;
     if (ioctl(dev, VIDIOCGCAP, &cap) < 0)
         throw V4LError("Couldn't get capabilities");
@@ -84,6 +88,7 @@ VideoCapability& V4LDevice::getCap(void) const
 
 VideoWindow& V4LDevice::getWin(void) const
 {
+    Context c("While getting V4L window");
     static VideoWindow win;
     if (ioctl(dev, VIDIOCGWIN, &win) < 0)
         throw V4LError("Couldn't get window");
@@ -92,6 +97,7 @@ VideoWindow& V4LDevice::getWin(void) const
 
 VideoPicture& V4LDevice::getPic(void) const
 {
+    Context c("While getting V4L picture");
     static VideoPicture vpic;
     if (ioctl(dev, VIDIOCGPICT, &vpic) < 0)
         throw V4LError("Couldn't get picture");
@@ -100,6 +106,7 @@ VideoPicture& V4LDevice::getPic(void) const
 
 void V4LDevice::setWin(const VideoWindow& win)
 {
+    Context c("While setting V4L window: " + stringify(win));
     VideoWindow w;
     if(ioctl(dev, VIDIOCSWIN, &win) < 0)
         throw V4LError("Couldn't set window");
@@ -112,6 +119,7 @@ void V4LDevice::setWin(const VideoWindow& win)
 
 void V4LDevice::setPic(const VideoPicture& pic)
 {
+    Context c("While setting V4L picture: " + stringify(pic));
     VideoPicture p;
     if(ioctl(dev, VIDIOCSPICT, &pic) < 0)
         throw V4LError("Couldn't set picture");
@@ -122,6 +130,7 @@ void V4LDevice::setPic(const VideoPicture& pic)
 
 void V4LDevice::setParams(uint32_t width, uint32_t height, uint16_t depth, uint16_t palette)
 {
+    Context c("While setting V4L params (" + stringify(width) + "," + stringify(height) + "@" + stringify(depth) + "bpp)");
     VideoWindow w = this->getWin();
     w.width  = width;
     w.height = height;
