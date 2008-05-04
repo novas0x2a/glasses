@@ -17,7 +17,7 @@ inline byte&  B(const Pixel &p) {return ((byte*)&p)[0];}
 inline byte&  A(const Pixel &p) {return ((byte*)&p)[3];}
 inline double V(const Pixel &p) {return 0.2989*R(p) + 0.5866*G(p) + 0.1145*B(p);}
 
-inline Pixel RGB(byte r, byte g, byte b, byte a = 0) {return (Pixel){b,g,r,a};}
+inline Pixel RGB(byte r, byte g, byte b, byte a = 1) {return (Pixel){b,g,r,a};}
 
 template<typename T>
 inline std::string stringify(const T& x)
