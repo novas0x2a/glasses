@@ -115,16 +115,17 @@ std::ostream& operator<< (std::ostream& os, const SDL_Rect& a)
 template <typename T>
 void Histogram<T>::draw(T peak) const
 {
+    static const uint32_t sep = 2;
     if (peak == 0)
         for (uint32_t i = 0; i < count; ++i)
             peak = max(peak, bins[i]);
 
-    uint16_t bwidth = width/count;
+    uint16_t bwidth = (width-(count-1*sep))/count;
 
     for (uint32_t i = 0; i < count; ++i)
     {
-        uint16_t bheight = bins[i]/width;
-        SDL_Rect tgt = {bwidth*i, height-bheight, bwidth, bheight};
+        uint16_t bheight = height*bins[i]/peak;
+        SDL_Rect tgt = {(bwidth+sep)*i, height-bheight, bwidth, bheight};
         SDL_FillRect(s, &tgt, SDL_MapRGB(s->format, 0,255,0));
     }
 }

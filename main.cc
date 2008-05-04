@@ -96,10 +96,10 @@ void rgb_hist(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t 
 
     for (uint32_t y = 0; y < height*width; ++y)
     {
-        bin[0] += R(out[y]) / V(out[y]);
-        bin[1] += G(out[y]) / V(out[y]);
-        bin[2] += B(out[y]) / V(out[y]);
-        out[y] = in[y];
+        bin[0] += R(in[y]) / V(in[y]);
+        bin[1] += G(in[y]) / V(in[y]);
+        bin[2] += B(in[y]) / V(in[y]);
+        out[y] = RGB(0,0,0);
     }
 
     bin.draw();
