@@ -74,20 +74,20 @@ class Histogram : public Overlay
         T& operator[] (unsigned i);
     private:
         uint32_t count;
-        T *bins;
-        T peak;
+        T* bins;
+        T  peak;
 };
 
 template <typename T>
 Histogram<T>::Histogram(Pixel *data, const uint32_t width, const uint32_t height, const uint32_t count) : Overlay(data, width, height), count(count)
 {
-    bins = (T*)malloc(count * sizeof(T));
+    bins = new T[count];
 }
 
 template <typename T>
 Histogram<T>::~Histogram()
 {
-    free(bins);
+    delete [] bins;
 }
 
 template <typename T>
