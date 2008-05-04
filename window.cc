@@ -16,36 +16,23 @@
 #include <SDL_ttf.h>
 
 #include "global.h"
-#include "video/v4l.h"
 #include "window.h"
 
 using namespace std;
 using namespace novas0x2a;
 
-inline SDL_Surface* makeFrame(VideoDevice *v)
+inline SDL_Surface* makeFrame(VideoDevice &v)
 {
     Context c("When making framebuffer");
-    void *px = new byte[v->getWidth() * v->getHeight() * (v->getDepth()>>3)];
-    return SDL_CreateRGBSurfaceFrom(px, v->getWidth(), v->getHeight(), v->getDepth(), v->getWidth()*(v->getDepth()>>3), 0x00ff0000, 0x0000ff00, 0x000000ff, 0);
+    void *px = new byte[v.getWidth() * v.getHeight() * (v.getDepth()>>3)];
+    return SDL_CreateRGBSurfaceFrom(px, v.getWidth(), v.getHeight(), v.getDepth(), v.getWidth()*(v.getDepth()>>3), 0x00ff0000, 0x0000ff00, 0x000000ff, 0);
 }
 
-MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint32_t win) : width(w), height(h), depth(d), windows(win+1)
+MainWin::MainWin(VideoDevice &_v, uint32_t _windows) : v(_v), windows(_windows+1)
 {
     Context c("When constructing Main Window");
-    if (depth != 32) // TODO: Not pixel-format generic
+    if (v.getDepth() != 32) // TODO: Not pixel-format generic
         throw ArgumentError("Only 3-byte color with 4-byte pixels is supported");
-
-    v = new V4LDevice("/dev/video0");
-
-    //TODO: Tied to SDL pixel format definitions
-    v->setParams(width, height,
-            depth == 32 ? VIDEO_PALETTE_RGB32 :
-            depth == 24 ? VIDEO_PALETTE_RGB24 : VIDEO_PALETTE_RGB565, depth);
-
-    // Reset width/height/depth to the values that the video device chose
-    width  = v->getWidth();
-    height = v->getHeight();
-    depth  = v->getDepth();
 
     winside = ceil(sqrt(windows));
 
@@ -54,7 +41,7 @@ MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint32_t win) : width(w), h
 
     SDL_WM_SetCaption(PROGRAM "-" VERSION, PROGRAM);
 
-    if (!(screen = SDL_SetVideoMode(width*winside, height*winside, depth, SDL_HWSURFACE)))
+    if (!(screen = SDL_SetVideoMode(v.getWidth()*winside, v.getHeight()*winside, v.getDepth(), SDL_HWSURFACE)))
         throw SDLError("Unable to set video mode");
 
     if (TTF_Init() == -1)
@@ -125,19 +112,19 @@ void MainWin::MainLoop(void)
                             break;
                         case 'p':
                             // TODO: HACK. VideoDevice needs a debugString method
-                            cerr << *dynamic_cast<V4LDevice*>(this->v) << endl;
+                            //cerr << *dynamic_cast<V4LDevice*>(this->v) << endl;
                             break;
 
-                        case 'b': this->v->setBrightness(this->v->getBrightness() - 1); break;
-                        case 'B': this->v->setBrightness(this->v->getBrightness() + 1); break;
-                        case 'h': this->v->setHue(this->v->getHue() - 1);               break;
-                        case 'H': this->v->setHue(this->v->getHue() + 1);               break;
-                        case 'c': this->v->setColour(this->v->getColour() - 1);         break;
-                        case 'C': this->v->setColour(this->v->getColour() + 1);         break;
-                        case 'n': this->v->setContrast(this->v->getContrast() - 1);     break;
-                        case 'N': this->v->setContrast(this->v->getContrast() + 1);     break;
-                        case 'w': this->v->setWhiteness(this->v->getWhiteness() - 1);   break;
-                        case 'W': this->v->setWhiteness(this->v->getWhiteness() + 1);   break;
+                        case 'b': this->v.setBrightness(this->v.getBrightness() - 1); break;
+                        case 'B': this->v.setBrightness(this->v.getBrightness() + 1); break;
+                        case 'h': this->v.setHue(this->v.getHue() - 1);               break;
+                        case 'H': this->v.setHue(this->v.getHue() + 1);               break;
+                        case 'c': this->v.setColour(this->v.getColour() - 1);         break;
+                        case 'C': this->v.setColour(this->v.getColour() + 1);         break;
+                        case 'n': this->v.setContrast(this->v.getContrast() - 1);     break;
+                        case 'N': this->v.setContrast(this->v.getContrast() + 1);     break;
+                        case 'w': this->v.setWhiteness(this->v.getWhiteness() - 1);   break;
+                        case 'W': this->v.setWhiteness(this->v.getWhiteness() + 1);   break;
 
                         default:
                             break;
@@ -150,7 +137,7 @@ void MainWin::MainLoop(void)
             }
         }
 
-        v->getFrame(static_cast<byte*>(funcs[0].frame->pixels));
+        v.getFrame(static_cast<byte*>(funcs[0].frame->pixels));
 
         Context c("Running filters");
         SDL_Rect r_tmp = {0,0,0,0};
@@ -162,11 +149,11 @@ void MainWin::MainLoop(void)
             if (likely(idx != 0))
             {
                 if (i->f)
-                    i->f(static_cast<Pixel*>(funcs[i->src].frame->pixels), static_cast<Pixel*>(i->frame->pixels), v->getWidth(), v->getHeight());
+                    i->f(static_cast<Pixel*>(funcs[i->src].frame->pixels), static_cast<Pixel*>(i->frame->pixels), v.getWidth(), v.getHeight());
                 r_tmp = (SDL_Rect){idx % winside, idx / winside, 0, 0};
                 r = &r_tmp;
-                r_tmp.x *= width;
-                r_tmp.y *= height;
+                r_tmp.x *= v.getWidth();
+                r_tmp.y *= v.getHeight();
             }
             // r == NULL the first time through, which is what i want for funcs[0], the source image
             if (unlikely(SDL_BlitSurface(i->frame, NULL, screen, r) != 0))

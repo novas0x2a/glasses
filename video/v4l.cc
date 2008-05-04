@@ -116,11 +116,11 @@ void V4LDevice::setPic(const VideoPicture& pic)
     if(ioctl(dev, VIDIOCSPICT, &pic) < 0)
         throw V4LError("Couldn't set picture");
     if(ioctl(dev, VIDIOCGPICT, &p) < 0)
-        throw V4LError("Couldn't set picture");
+        throw V4LError("Couldn't get picture");
     depth = p.depth;
 }
 
-void V4LDevice::setParams(uint32_t width, uint32_t height, uint16_t palette, uint16_t depth)
+void V4LDevice::setParams(uint32_t width, uint32_t height, uint16_t depth, uint16_t palette)
 {
     VideoWindow w = this->getWin();
     w.width  = width;

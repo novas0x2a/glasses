@@ -23,16 +23,15 @@ struct Filter {
 class MainWin
 {
     public:
-        MainWin(uint32_t width, uint32_t height, uint32_t depth, uint32_t windows);
+        MainWin(VideoDevice &v, uint32_t windows);
         ~MainWin(void);
         void MainLoop(void);
         void AddFilter(const char *name, FilterFunc f, uint32_t idx, uint32_t src = 0);
         void DrawText(const char *text, SDL_Rect loc, SDL_Color fg, SDL_Color bg);
         void ScreenShot(SDL_Surface *s);
     private:
-        uint32_t width, height, depth;
         SDL_Surface *screen;
-        VideoDevice *v;
+        VideoDevice &v;
         uint32_t windows, winside;
         vector<Filter> funcs;
         TTF_Font *font;

@@ -7,6 +7,8 @@
 #include "window.h"
 #include "overlay.h"
 
+#include "video/v4l.h"
+
 using namespace std;
 using namespace novas0x2a;
 
@@ -203,7 +205,11 @@ int main(int argc, char *argv[])
     try {
         Context c("When running " PROGRAM " " VERSION);
 #if 1
-        MainWin win(176, 144, 32, 14);
+        V4LDevice v("/dev/video0");
+        //TODO: Tied to SDL pixel format definitions
+        v.setParams(176, 144, 32, VIDEO_PALETTE_RGB32);
+
+        MainWin win(v, 14);
 
         win.AddFilter("Brightness",      linear_contrast, 1, 0);
         win.AddFilter("RGB Histogram",   rgb_hist,      2, 1);

@@ -8,9 +8,10 @@ class VideoDevice
 {
     public:
 
+        VideoDevice() {};
         virtual ~VideoDevice(void) {};
 
-        virtual void setParams(uint32_t width, uint32_t height, uint16_t palette, uint16_t depth) = 0;
+        virtual void setParams(uint32_t width, uint32_t height, uint16_t depth, uint16_t palette) = 0;
         virtual void getFrame(byte *buf) = 0;
 
         virtual uint16_t getBrightness(void) const = 0;
@@ -32,6 +33,10 @@ class VideoDevice
     protected:
         uint32_t width, height;
         uint32_t depth;
+
+    private:
+        explicit VideoDevice(const VideoDevice& original);
+        VideoDevice& operator=(const VideoDevice& original);
 };
 
 class VideoError : public novas0x2a::Exception

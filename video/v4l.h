@@ -25,7 +25,7 @@ class V4LDevice : public VideoDevice
 
         friend std::ostream& operator<< (std::ostream &os, const V4LDevice& v);
 
-        void setParams(uint32_t width, uint32_t height, uint16_t palette = VIDEO_PALETTE_RGB32, uint16_t depth = 0);
+        void setParams(uint32_t width, uint32_t height, uint16_t depth, uint16_t palette);
         void getFrame(byte *buf);
 
         uint16_t getBrightness(void) const;
