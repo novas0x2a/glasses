@@ -212,9 +212,9 @@ void MainWin::ScreenShot(SDL_Surface *s)
 void MainWin::AddFilter(const char* name, FilterFunc f, uint32_t idx, uint32_t src)
 {
     Context c(string("When adding a filter named \"") + name + "\" at index " + stringify(uint32_t(idx)) + " with source " + stringify(uint32_t(src)));
-    if (idx > windows-1)
+    if (idx >= windows)
         throw ArgumentError("Illegal filter index (max index is " + stringify(windows-1) + ")");
-    if (src > windows-1)
+    if (src >= windows)
         throw ArgumentError("Illegal source index (max index is " + stringify(windows-1) + ")");
     if (!funcs[src].frame)
         throw ArgumentError("Create the source before you try to use it");
