@@ -17,6 +17,7 @@
 
 #include "global.h"
 #include "window.h"
+#include "utils/average.h"
 
 using namespace std;
 using namespace novas0x2a;
@@ -83,17 +84,14 @@ void MainWin::MainLoop(void)
     Context c("When running main loop");
     SDL_Event event;
     struct timeval t1, t2 = {0,0};
-    static const uint16_t AVG_SAMP = 10;
-    uint32_t fps[AVG_SAMP] = {0}, fps_avg = 0, fps_i = 0;
+    RunningAverage<uint32_t> avg(10);
 
     // Before we trust the filters, do a basic sanity check
     vector<Filter>::const_iterator i;
     size_t idx;
     for (idx = 0, i = funcs.begin(); i != funcs.end(); ++idx, ++i)
-    {
         if (!i->frame)
             throw ArgumentError("Framebuffer for filter \"" + i->name + "\" (idx " + stringify(idx) + ") doesn't exist");
-    }
 
     while (1)
     {
@@ -160,15 +158,9 @@ void MainWin::MainLoop(void)
                 throw SDLError("Blit failed");
         }
 
-        // TODO: RunningAverage class
-        fps[fps_i++] = (uint16_t)(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
-        if (fps_i == AVG_SAMP)
-            fps_i = 0;
-        for (uint16_t i = 0; i < AVG_SAMP; ++i)
-            fps_avg += fps[i];
-        fps_avg /= AVG_SAMP;
+        avg.add(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
 
-        this->DrawText(stringify(fps_avg).c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
+        this->DrawText(stringify(avg.get()).c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
 
         SDL_Flip(screen);
 
