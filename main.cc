@@ -5,9 +5,10 @@
 
 #include "global.h"
 #include "window.h"
-#include "hist.h"
+#include "overlay.h"
 
 using namespace std;
+using namespace novas0x2a;
 
 void copy(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
@@ -195,7 +196,7 @@ void lines(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t hei
 void edge2(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     double val;
-    static Text txt(out, width, height, "/usr/share/fonts/ttf-bitstream-vera/Vera.ttf", 20);
+    static Text txt(out, width, height, FONT, 20);
     static uint32_t j = 0;
     for (uint32_t i = 1; i < width*height-1; ++i)
     {

@@ -1,14 +1,13 @@
 #include <iostream>
 #include <string>
-#include <cassert>
 #include <cmath>
 #include <cerrno>
+#include <vector>
 
 // For open
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
 #include <sys/time.h>
 #include <time.h>
 
@@ -21,53 +20,65 @@
 #include "window.h"
 
 using namespace std;
+using namespace novas0x2a;
 
-MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint8_t win) : width(w), height(h), depth(d)
+inline SDL_Surface* makeFrame(VideoDevice *v)
 {
-    assert(depth % 8 == 0 && depth >= 24);
-    assert(windows > 0);
+    Context c("When making framebuffer");
+    void *px = new byte[v->getWidth() * v->getHeight() * (v->getDepth()>>3)];
+    return SDL_CreateRGBSurfaceFrom(px, v->getWidth(), v->getHeight(), v->getDepth(), v->getWidth()*(v->getDepth()>>3), 0x00ff0000, 0x0000ff00, 0x000000ff, 0);
+}
+
+MainWin::MainWin(uint32_t w, uint32_t h, uint32_t d, uint32_t win) : width(w), height(h), depth(d), windows(win+1)
+{
+    Context c("When constructing Main Window");
+    if (depth != 32) // TODO: Not pixel-format generic
+        throw ArgumentError("Only 3-byte color with 4-byte pixels is supported");
 
     v = new V4LDevice("/dev/video0");
 
+    //TODO: Tied to SDL pixel format definitions
     v->setParams(width, height,
             depth == 32 ? VIDEO_PALETTE_RGB32 :
             depth == 24 ? VIDEO_PALETTE_RGB24 : VIDEO_PALETTE_RGB565, depth);
 
-    assert(v->getWidth()  == width);
-    assert(v->getHeight() == height);
-    assert(v->getDepth()  == depth);
+    // Reset width/height/depth to the values that the video device chose
+    width  = v->getWidth();
+    height = v->getHeight();
+    depth  = v->getDepth();
 
-    winside = (uint8_t)ceil(sqrt(win));
-    windows = winside * winside;
+    winside = ceil(sqrt(windows));
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
-        throw string("Could not init SDL");
+        throw GeneralError(DEBUG_HERE, "Could not init SDL");
 
     SDL_WM_SetCaption(PROGRAM "-" VERSION, PROGRAM);
 
     if (!(screen = SDL_SetVideoMode(width*winside, height*winside, depth, SDL_HWSURFACE)))
-        throw string("Unable to set video mode: ") + SDL_GetError();
+        throw SDLError("Unable to set video mode");
 
     if (TTF_Init() == -1)
-        throw string("Could not init TTF: ") + TTF_GetError();
+        throw TTFError("Could not init TTF");
 
-    if (!(font = TTF_OpenFont("/usr/share/fonts/ttf-bitstream-vera/Vera.ttf", 20)))
-        throw string("Could not load font: ") + TTF_GetError();
+    if (!(font = TTF_OpenFont(FONT, 20)))
+        throw TTFError("Could not load font");
 
-    framebuf    = (byte**)malloc(windows * sizeof(char*));
-    framebuf[0] = (byte*)malloc(windows * v->getWidth() * v->getHeight() * (v->getDepth()>>3));
-    for (uint16_t i = 1; i < windows; ++i)
-        framebuf[i] = framebuf[0] + (i * v->getWidth() * v->getHeight() * (v->getDepth()>>3));
-
-    funcs = new Filter[windows];
-    memset(funcs, 0, sizeof(Filter) * windows);
+    for (uint16_t i = 0; i < windows; ++i)
+        funcs.push_back((Filter){0, makeFrame(v), i == 0 ? string("source") : string(), -1});
 }
 
 MainWin::~MainWin(void)
 {
-    delete[] funcs;
-    free(framebuf[0]);
-    free(framebuf);
+    Context c("When Destructing Main Window");
+    vector<Filter>::iterator i;
+    for (i = funcs.begin(); i != funcs.end(); ++i)
+    {
+        if (i->frame)
+        {
+            delete [] static_cast<byte*>(i->frame->pixels);
+            SDL_FreeSurface(i->frame);
+        }
+    }
     SDL_FreeSurface(screen);
     SDL_Quit();
 }
@@ -76,21 +87,26 @@ void MainWin::DrawText(const char *text, SDL_Rect loc, SDL_Color fg, SDL_Color b
 {
     SDL_Surface *txt = TTF_RenderText_Shaded(font, text, fg, bg);
     if (SDL_BlitSurface(txt, NULL, screen, &loc) != 0)
-        throw string("Text Blit failed: ") + SDL_GetError();
+        throw SDLError("Text Blit failed: ");
     SDL_FreeSurface(txt);
 }
 
 void MainWin::MainLoop(void)
 {
+    Context c("When running main loop");
     SDL_Event event;
-    SDL_Surface *frame[windows];
     struct timeval t1, t2 = {0,0};
     static const uint16_t AVG_SAMP = 10;
     uint32_t fps[AVG_SAMP] = {0}, fps_avg = 0, fps_i = 0;
 
-    for (uint16_t i = 0; i < windows; ++i)
-        if (!(frame[i] = SDL_CreateRGBSurfaceFrom(framebuf[i], v->getWidth(), v->getHeight(), v->getDepth(), v->getWidth()*(depth>>3), 0x00ff0000, 0x0000ff00, 0x000000ff, 0)))
-            throw string("CreateSurface failed") + SDL_GetError();
+    // Before we trust the filters, do a basic sanity check
+    vector<Filter>::const_iterator i;
+    size_t idx;
+    for (idx = 0, i = funcs.begin(); i != funcs.end(); ++idx, ++i)
+    {
+        if (!i->frame)
+            throw ArgumentError("Framebuffer for filter \"" + i->name + "\" (idx " + stringify(idx) + ") doesn't exist");
+    }
 
     while (1)
     {
@@ -133,24 +149,30 @@ void MainWin::MainLoop(void)
             }
         }
 
-        v->getFrame(framebuf[0]);
+        v->getFrame(static_cast<byte*>(funcs[0].frame->pixels));
 
-        for (uint16_t i = 1; i < windows; ++i)
-            if (likely(funcs[i].f != NULL))
+        Context c("Running filters");
+        SDL_Rect r_tmp = {0,0,0,0};
+        SDL_Rect *r = NULL;
+        size_t idx;
+        vector<Filter>::const_iterator i;
+        for (idx = 0, i = funcs.begin(); i != funcs.end(); ++idx, ++i)
+        {
+            if (likely(idx != 0))
             {
-                funcs[i].f((Pixel*)framebuf[funcs[i].src], (Pixel*)framebuf[i], v->getWidth(), v->getHeight());
-                SDL_Rect r = {i % winside, i / winside, 0, 0};
-                r.x *= width;
-                r.y *= height;
-                if (unlikely(SDL_BlitSurface(frame[i], NULL, screen, &r) != 0))
-                    throw string("Blit failed") + SDL_GetError();
+                if (i->f)
+                    i->f(static_cast<Pixel*>(funcs[i->src].frame->pixels), static_cast<Pixel*>(i->frame->pixels), v->getWidth(), v->getHeight());
+                r_tmp = (SDL_Rect){idx % winside, idx / winside, 0, 0};
+                r = &r_tmp;
+                r_tmp.x *= width;
+                r_tmp.y *= height;
             }
-            else
-                continue;
+            // r == NULL the first time through, which is what i want for funcs[0], the source image
+            if (unlikely(SDL_BlitSurface(i->frame, NULL, screen, r) != 0))
+                throw SDLError("Blit failed");
+        }
 
-        if (unlikely(SDL_BlitSurface(frame[0], NULL, screen, NULL) != 0))
-            throw string("Blit failed") + SDL_GetError();
-
+        // TODO: RunningAverage class
         fps[fps_i++] = (uint16_t)(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
         if (fps_i == AVG_SAMP)
             fps_i = 0;
@@ -165,13 +187,11 @@ void MainWin::MainLoop(void)
         t2.tv_sec  = t1.tv_sec;
         t2.tv_usec = t1.tv_usec;
     }
-
-    for (uint16_t i = 0; i < windows; ++i)
-        SDL_FreeSurface(frame[i]);
 }
 
 void MainWin::ScreenShot(SDL_Surface *s)
 {
+    Context c("When taking a screenshot");
     for (uint32_t i = 0; true; ++i)
     {
         int fd = open(string("shot" + stringify(i) + ".ppm").c_str(), O_CREAT|O_EXCL|O_WRONLY, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
@@ -180,11 +200,11 @@ void MainWin::ScreenShot(SDL_Surface *s)
             if(errno == EEXIST)
                 continue;
             else
-                throw string("Could not open screenshot file: ") + strerror(errno);
+                throw GeneralError(DEBUG_HERE, string("Could not open screenshot file: ") + strerror(errno));
         }
         FILE *f = fdopen(fd, "w");
         if (!f)
-            throw string("Could not get FILE pointer to screenshot file: ") + strerror(errno);
+            throw GeneralError(DEBUG_HERE, string("Could not get FILE pointer to screenshot file: ") + strerror(errno));
 
         fprintf(f, "P6\n%i %i 255\n", s->w, s->h);
 
@@ -201,14 +221,17 @@ void MainWin::ScreenShot(SDL_Surface *s)
     }
 }
 
-void MainWin::AddFilter(FilterFunc f, uint8_t idx, uint8_t src)
+void MainWin::AddFilter(const char* name, FilterFunc f, uint32_t idx, uint32_t src)
 {
-    if (idx > windows-1 || src > windows-1)
-        throw string("Illegal filter func index");
-    if (src >= idx)
-        throw string("Illegal filter source (must be <= index)");
+    Context c(string("When adding a filter named \"") + name + "\" at index " + stringify(uint32_t(idx)) + " with source " + stringify(uint32_t(src)));
+    if (idx > windows-1)
+        throw ArgumentError("Illegal filter index (max index is " + stringify(windows-1) + ")");
+    if (src > windows-1)
+        throw ArgumentError("Illegal source index (max index is " + stringify(windows-1) + ")");
+    if (!funcs[src].frame)
+        throw ArgumentError("Create the source before you try to use it");
 
-    funcs[idx] = (Filter){f, src};
+    funcs[idx] = (Filter){f,makeFrame(v),string(name),src};
 }
 /*}}}*/
 

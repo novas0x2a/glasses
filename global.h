@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <cmath>
+#include "utils/context.h"
 
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
@@ -19,12 +20,6 @@ inline double V(const Pixel &p) {return 0.2989*R(p) + 0.5866*G(p) + 0.1145*B(p);
 
 inline Pixel RGB(byte r, byte g, byte b, byte a = 1) {return (Pixel){b,g,r,a};}
 
-template<typename T>
-inline std::string stringify(const T& x)
-{
-    std::ostringstream o;
-    o << x;
-    return o.str();
-}
+#define FONT "/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf"
 
 #endif

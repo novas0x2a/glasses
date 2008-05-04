@@ -4,7 +4,6 @@
 #include <SDL.h>
 #include <string>
 #include "global.h"
-#include "utils/context.h"
 
 using namespace novas0x2a;
 
@@ -23,7 +22,7 @@ Overlay::Overlay(Pixel *data, const uint32_t width, const uint32_t height) : wid
 {
     s = SDL_CreateRGBSurfaceFrom((char*)data, width, height, 32, width*4, 0x00ff0000, 0x0000ff00, 0x000000ff, 0);
     if (!s)
-        throw SDL_Error(DEBUG_HERE, "Could not create overlay surface");
+        throw SDLError("Could not create overlay surface");
 }
 
 Overlay::~Overlay()
@@ -45,7 +44,7 @@ Text::Text(Pixel *data, const uint32_t width, const uint32_t height, const char 
 {
     this->font = TTF_OpenFont(font, size);
     if (!this->font)
-        throw std::string("Could not open font: ") + TTF_GetError();
+        throw TTFError("Could not open font");
 }
 
 Text::~Text()
@@ -56,10 +55,10 @@ Text::~Text()
 void Text::draw(const char* str, uint8_t r, uint8_t g, uint8_t b) const
 {
     SDL_Surface *txt = TTF_RenderText_Solid(font, str, (SDL_Color){r,g,b,0});
-    if (!txt)
-        throw std::string("Text Render failed [") + str + "]: " + TTF_GetError();
-    if (SDL_BlitSurface(txt, NULL, s, NULL) != 0)
-        throw std::string("Text Blit failed: ") + SDL_GetError();
+    if (unlikely(!txt))
+        throw TTFError(string("Text Render failed [") + str + "]");
+    if (unlikely(SDL_BlitSurface(txt, NULL, s, NULL)) != 0)
+        throw SDLError("Text Blit failed");
 }
 
 template <typename T>
@@ -94,17 +93,17 @@ Histogram<T>::~Histogram()
 template <typename T>
 const T& Histogram<T>::operator[] (unsigned i) const
 {
-    if (i > count-1)
-        throw "Illegal Index";
-    return bins[i];
+    if (i < count)
+        return bins[i];
+    throw ArgumentError("Illegal Histogram Bin (there are only " + stringify(count) + ")");
 }
 
 template <typename T>
 T& Histogram<T>::operator[] (unsigned i)
 {
-    if (i > count-1)
-        throw "Illegal Index";
-    return bins[i];
+    if (i < count)
+        return bins[i];
+    throw ArgumentError("Illegal Histogram Bin (there are only " + stringify(count) + ")");
 }
 
 std::ostream& operator<< (std::ostream& os, const SDL_Rect& a)
