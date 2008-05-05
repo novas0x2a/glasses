@@ -180,7 +180,7 @@ void MainWin::MainLoop(void)
 void MainWin::ScreenShot(SDL_Surface *s)
 {
     Context c("When taking a screenshot");
-    for (uint32_t i = 0; true; ++i)
+    for (uint32_t i = 0; i < 50; ++i)
     {
         int fd = open(string("shot" + stringify(i) + ".ppm").c_str(), O_CREAT|O_EXCL|O_WRONLY, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
         if (fd < 0)
@@ -207,6 +207,7 @@ void MainWin::ScreenShot(SDL_Surface *s)
         fclose(f);
         return;
     }
+    throw GeneralError(DEBUG_HERE, "Too many screenshots exist already.");
 }
 
 void MainWin::AddFilter(const char* name, FilterFunc f, uint32_t idx, uint32_t src)
