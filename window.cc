@@ -96,7 +96,7 @@ void MainWin::MainLoop(void)
     while (1)
     {
         gettimeofday(&t1, NULL);
-        while(SDL_PollEvent(&event))
+        while(unlikely(SDL_PollEvent(&event)))
         {
             switch(event.type)
             {
@@ -162,12 +162,17 @@ void MainWin::MainLoop(void)
 
         avg.add(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
 
-        this->DrawText(stringify(avg.get()).c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
+        uint32_t fps = avg.get();
+        this->DrawText(stringify(fps).c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
 
         SDL_Flip(screen);
 
         t2.tv_sec  = t1.tv_sec;
         t2.tv_usec = t1.tv_usec;
+        if (unlikely(fps < 1))
+            SDL_Delay(33);
+        else if (1000/fps < 33)
+            SDL_Delay(33 - 1000/fps);
     }
 }
 
@@ -188,7 +193,7 @@ void MainWin::ScreenShot(SDL_Surface *s)
         if (!f)
             throw GeneralError(DEBUG_HERE, string("Could not get FILE pointer to screenshot file: ") + strerror(errno));
 
-        fprintf(f, "P6\n%i %i 255\n", s->w, s->h);
+        fprintf(f, "P6\n%u %u\n255\n", s->w, s->h);
 
         Pixel *p = (Pixel*)s->pixels;
 
