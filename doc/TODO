@@ -2,5 +2,6 @@
  * Make brightness filter smarter (outlier detection, nonlinear)
  * Standard filters for camera so they don't have to take up frames
  * Define filters in a config file
+ * Lacks documetation
  * Allow other pixel formats besides 32-bit
  * Load staticfile images with a real library so it can use other things besides ppm
