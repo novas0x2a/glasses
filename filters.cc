@@ -89,11 +89,16 @@ void rgb_hist(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t 
 
     bin.clear();
 
+    double v;
     for (uint32_t y = 0; y < height*width; ++y)
     {
-        bin[0] += R(in[y]) / Vd(in[y]);
-        bin[1] += G(in[y]) / Vd(in[y]);
-        bin[2] += B(in[y]) / Vd(in[y]);
+        v = Vd(in[y]);
+        if (v > 0) // protect from NaN
+        {
+            bin[0] += R(in[y]) / v;
+            bin[1] += G(in[y]) / v;
+            bin[2] += B(in[y]) / v;
+        }
     }
     memset(out, 0, width*height*sizeof(Pixel));
 
