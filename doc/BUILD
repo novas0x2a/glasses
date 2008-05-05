@@ -14,6 +14,9 @@ one. That'd be sweet. I'm aiming for some level of cross-platform stuff here. I
 doubt it will compile with vc++, though. Type 'make' to compile. It might need
 gnu make. The makefile uses SECONDEXPANSION, which requires gnu make >= 3.81.
 
+If you have an older make, you can try Makefile.old (make -f Makefile.old). It
+just won't be awesome.
+
 Keys:
 
 s) Dump the current screen to shotX.ppm, where X is the lowest unsigned integer

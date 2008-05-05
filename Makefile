@@ -1,7 +1,7 @@
 PROGRAM  := glasses
 VERSION  := 0.04
 
-DISTFILES := doc/* Makefile c.mk Vera.ttf
+DISTFILES := doc/* Makefile c.mk Vera.ttf Makefile.old
 
 CC           := g++
 glasses_SRC  := $(wildcard *.cc video/*.cc utils/*.cc)

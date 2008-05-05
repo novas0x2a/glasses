@@ -1,0 +1,8 @@
+all:
+	g++ -Wall -Wextra -Wno-unused-parameter -g2 -ggdb -D_GLIBCXX_DEBUG `pkg-config --cflags sdl` -DPROGRAM="\"glasses\"" -DVERSION="\"0.04\"" -c filters.cc -o filters.o
+	g++ -Wall -Wextra -Wno-unused-parameter -g2 -ggdb -D_GLIBCXX_DEBUG `pkg-config --cflags sdl` -DPROGRAM="\"glasses\"" -DVERSION="\"0.04\"" -c main.cc -o main.o
+	g++ -Wall -Wextra -Wno-unused-parameter -g2 -ggdb -D_GLIBCXX_DEBUG `pkg-config --cflags sdl` -DPROGRAM="\"glasses\"" -DVERSION="\"0.04\"" -c window.cc -o window.o
+	g++ -Wall -Wextra -Wno-unused-parameter -g2 -ggdb -D_GLIBCXX_DEBUG `pkg-config --cflags sdl` -DPROGRAM="\"glasses\"" -DVERSION="\"0.04\"" -c video/staticfile.cc -o video/staticfile.o
+	g++ -Wall -Wextra -Wno-unused-parameter -g2 -ggdb -D_GLIBCXX_DEBUG `pkg-config --cflags sdl` -DPROGRAM="\"glasses\"" -DVERSION="\"0.04\"" -c video/v4l.cc -o video/v4l.o
+	g++ -Wall -Wextra -Wno-unused-parameter -g2 -ggdb -D_GLIBCXX_DEBUG `pkg-config --cflags sdl` -DPROGRAM="\"glasses\"" -DVERSION="\"0.04\"" -c utils/context.cc -o utils/context.o
+	g++ -Wall -Wextra -Wno-unused-parameter -g2 -ggdb -D_GLIBCXX_DEBUG `pkg-config --cflags sdl` -DPROGRAM="\"glasses\"" -DVERSION="\"0.04\"" filters.o main.o window.o video/staticfile.o video/v4l.o utils/context.o -o glasses -lSDL_ttf `pkg-config --libs   sdl`
