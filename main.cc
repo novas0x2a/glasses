@@ -8,6 +8,7 @@
 #include "overlay.h"
 
 #include "video/v4l.h"
+#include "video/staticfile.h"
 
 using namespace std;
 using namespace novas0x2a;

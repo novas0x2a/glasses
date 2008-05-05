@@ -58,6 +58,14 @@ namespace novas0x2a
                 Exception(our_message) {};
     };
 
+    // A bad argument was passed somewhere
+    class UnimplementedError : public Exception
+    {
+        public:
+            UnimplementedError(const std::string& our_message) throw ():
+                Exception(std::string("Unimplemented: ") + our_message) {};
+    };
+
     // Implemented in cc to keep sdl out of the header
     class SDLError : public Exception
     {
@@ -74,6 +82,7 @@ namespace novas0x2a
 
 #define DEBUG_HERE (std::string("In [") + __PRETTY_FUNCTION__ + "]\n\tat " + \
         std::string(__FILE__) + ":" + stringify(__LINE__))
+#define FUNCTION_HERE __PRETTY_FUNCTION__
 }
 
 #endif
