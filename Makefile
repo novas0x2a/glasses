@@ -1,5 +1,5 @@
 PROGRAM  := glasses
-VERSION  := 0.03-pre
+VERSION  := 0.04
 
 DISTFILES := doc/* Makefile c.mk
 
