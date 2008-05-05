@@ -163,17 +163,17 @@ void MainWin::MainLoop(void)
 
         avg.add(1/((double)(t1.tv_sec - t2.tv_sec) + (t1.tv_usec - t2.tv_usec)/1000000.0));
 
-        uint32_t fps = avg.get();
-        this->DrawText(stringify(fps).c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
+        this->DrawText(stringify(avg.get()).c_str(), (SDL_Rect){0,0,0,0}, (SDL_Color){0xff,0xff,0xff,0}, (SDL_Color){0,0,0,0});
 
         SDL_Flip(screen);
 
         t2.tv_sec  = t1.tv_sec;
         t2.tv_usec = t1.tv_usec;
-        if (unlikely(fps < 1))
+
+        if (unlikely(avg.get() < 1))
             SDL_Delay(33);
-        else if (1000/fps < 33)
-            SDL_Delay(33 - 1000/fps);
+        else if (1000/avg.get() < 33)
+            SDL_Delay(33 - 1000/avg.get());
     }
 }
 
