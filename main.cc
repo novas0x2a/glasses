@@ -3,6 +3,11 @@
 #include <limits>
 #include <algorithm>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+
 #include "global.h"
 #include "window.h"
 #include "overlay.h"
@@ -179,14 +184,27 @@ void edge2(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t hei
 
 int main(int argc, char *argv[])
 {
+    VideoDevice *v = NULL;
     try {
         Context c("When running " PROGRAM " " VERSION);
-#if 1
-        V4LDevice v("/dev/video0");
-        //TODO: Tied to SDL pixel format definitions
-        v.setParams(176, 144, 32, VIDEO_PALETTE_RGB32);
+        if (argc != 2)
+            throw CommandLineError("Usage: glasses <v4l device or ppm file>");
 
-        MainWin win(v, 14);
+        struct stat st;
+        if (stat(argv[1], &st) < 0)
+            throw CommandLineError(string("Couldn't stat file: ") + strerror(errno));
+
+        if (S_ISREG(st.st_mode))
+            v = new StaticFile(argv[1]);
+        else if (S_ISCHR(st.st_mode))
+            v = new V4LDevice(argv[1]);
+        else
+            throw CommandLineError("Usage: glasses <v4l device or ppm file>");
+
+        //TODO: Tied to SDL pixel format definitions
+        v->setParams(176, 144, 32, VIDEO_PALETTE_RGB32);
+
+        MainWin win(*v, 14);
 
         win.AddFilter("Brightness",      linear_contrast, 1, 0);
         win.AddFilter("RGB Histogram",   rgb_hist,      2, 1);
@@ -202,14 +220,11 @@ int main(int argc, char *argv[])
         win.AddFilter("Cyan Channel",    invert,       12, 8);
         win.AddFilter("Magenta Channel", invert,       13, 9);
         win.AddFilter("Yellow Channel",  invert,       14, 10);
-#else
-        MainWin win(320, 240, 32, 3);
-        win.AddFilter("Fixing Brightness", linear_contrast, 1, 0);
-        win.AddFilter("Grayscale",         gray,      2, 1);
-        win.AddFilter("Blurring",          blur,      3, 2);
-#endif
 
         win.MainLoop();
+
+    } catch (const CommandLineError &e) {
+        cerr << e.message() << endl;
     } catch (const Exception &e) {
         cerr << "Exception:" << endl
             << "  * "
@@ -221,6 +236,9 @@ int main(int argc, char *argv[])
     } catch (...) {
         cerr << "Ack. Really unhandled exception." << endl;
     }
+
+    if (v)
+        delete v;
 
     return 0;
 }

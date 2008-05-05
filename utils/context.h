@@ -51,6 +51,14 @@ namespace novas0x2a
     };
 
     // A bad argument was passed somewhere
+    class CommandLineError : public Exception
+    {
+        public:
+            CommandLineError(const std::string& our_message) throw ():
+                Exception(our_message) {};
+    };
+
+    // A bad argument was passed somewhere
     class ArgumentError : public Exception
     {
         public:
