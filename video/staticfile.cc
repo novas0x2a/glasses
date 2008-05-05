@@ -26,7 +26,7 @@ StaticFile::StaticFile(const char *file) : image(NULL)
     try {
 
         if (fscanf(f, "P6\n%u %u 255\n", &width, &height) != 2)
-            throw ArgumentError(string(file) + " doesn't look like a 32bpp ppm.");
+            throw ArgumentError(string(file) + " doesn't look like a 24bpp ppm. See http://en.wikipedia.org/wiki/Portable_pixmap. I'm looking for a P6 type. Imagemagick can help with that.");
         depth = 32;
 
         if (width * height > 1024*768)
@@ -118,5 +118,10 @@ void StaticFile::getFrame(byte *buf)
     if (image_width * image_height * image_depth >= width * height * depth)
         memcpy(buf, image, width*height*depth>>3);
     else
-        throw UnimplementedError(FUNCTION_HERE);
+        throw UnimplementedError(
+                string("image(")
+                + stringify(image_width) + "x" + stringify(image_height) + "@" + stringify(image_depth) + ")"
+                + " must be at least as big as requested("
+                + stringify(width) + "x" + stringify(height) + "@" + stringify(depth) + ")" +
+                FUNCTION_HERE);
 }

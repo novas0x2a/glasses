@@ -1,0 +1,5 @@
+How do you run it? Okay, so.. it's still a little rough. There's no way to
+define filter chains in a config file or something, so you have to change code
+to do so. The filters are in filters.cc, and they are used in main.cc
+
+As for sources, you can either read from a V4L1 character device or a 24bpp
