@@ -20,7 +20,11 @@ class V4LDevice : public VideoDevice
 {
     public:
 
-        V4LDevice(const char *);
+        /**
+         * Create a V4L camera device
+         * @param path  Path to the character device (ex: /dev/video0?)
+         */
+        explicit V4LDevice(const char *path);
         ~V4LDevice(void);
 
         friend std::ostream& operator<< (std::ostream &os, const V4LDevice& v);

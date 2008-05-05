@@ -8,7 +8,11 @@ class StaticFile : public VideoDevice
 {
     public:
 
-        StaticFile(const char *);
+        /**
+         * Create a StaticFile "device"
+         * @param path  Path to the file. Must be a P6-format PPM sans comments.
+         */
+        explicit StaticFile(const char *path);
         ~StaticFile(void);
 
         void setParams(uint32_t width, uint32_t height, uint16_t depth, uint16_t palette);
@@ -28,6 +32,7 @@ class StaticFile : public VideoDevice
 
     private:
         Pixel *image;
+        // Parameters about the image, so we don't blow out of the buffer
         uint32_t image_width, image_height, image_depth;
 
         explicit StaticFile(const StaticFile& original);

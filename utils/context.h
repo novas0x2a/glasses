@@ -7,6 +7,12 @@
 #include <exception>
 #include "stringify.h"
 
+/* The general idea here is to keep a list of strings representing a
+ * human-readable stack of operations, adding to the list when a context object
+ * is created, and popping it back off when it is destroyed
+ *
+ * When an exception is thrown, copy the current context stack into it.
+ */
 namespace novas0x2a
 {
     class Context
