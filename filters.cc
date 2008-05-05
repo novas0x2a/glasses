@@ -139,6 +139,7 @@ void colorize(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t 
     static Pixel color[5];
     int32_t idx = 0;
     static bool done = 0;
+    bool chg, last = false;
     // Cache the colors on the first call
     if (!done)
     {
@@ -147,14 +148,14 @@ void colorize(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t 
             color[i] = RGB(rand() % 255, rand() % 255, rand() % 255);
         done++;
     }
+
     for (uint32_t y = 0; y < height; ++y)
     {
         idx = 0;
         for (uint32_t x = 0; x < width; ++x)
         {
-            static bool chg,last;
-            chg = Vd(get(const_cast<Pixel*>(in), x, y, width));
-            if (!last && chg)
+            chg = Vb(get(const_cast<Pixel*>(in), x, y, width));
+            if (last ^ chg)
                 idx = (idx + 1) % 5;
             get(out, x, y, width) = color[idx];
             last = chg;
