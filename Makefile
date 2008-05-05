@@ -8,8 +8,8 @@ glasses_SRC  := $(wildcard *.cc video/*.cc utils/*.cc)
 HEADERS      := $(wildcard *.h video/*.h utils/*.h)
 LIBS         := -lSDL_ttf
 PKGS         := sdl
-DEBUG        := n
-PROFILE      := y
+DEBUG        := y
+PROFILE      := n
 
 PROGS    := $(PROGRAM)
 include c.mk
