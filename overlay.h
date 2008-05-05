@@ -87,64 +87,6 @@ class Histogram : public Overlay
         T  peak;
 };
 
-template <typename T>
-Histogram<T>::Histogram(Pixel *data, const uint32_t width, const uint32_t height, const uint32_t count) : Overlay(data, width, height), count(count)
-{
-    bins = new T[count];
-}
-
-template <typename T>
-Histogram<T>::~Histogram()
-{
-    delete [] bins;
-}
-
-template <typename T>
-const T& Histogram<T>::operator[] (unsigned i) const
-{
-    return bins[i];
-}
-
-template <typename T>
-T& Histogram<T>::operator[] (unsigned i)
-{
-    return bins[i];
-}
-
-std::ostream& operator<< (std::ostream& os, const SDL_Rect& a)
-{
-    os << "SDL_Rect[x[" << a.x << "] y[" << a.y << "] w[" << a.w << "] h[" << a.h << "]]";
-    return os;
-}
-
-template <typename T>
-void Histogram<T>::draw(T peak) const
-{
-    static const uint32_t sep = 2;
-    static T last_peak = 0;
-    if (peak == 0)
-        for (uint32_t i = 0; i < count; ++i)
-            peak = max(peak, bins[i]);
-    if (last_peak > peak)
-        peak = last_peak;
-    else
-        last_peak = peak;
-
-    uint16_t bwidth = (width-(count-1*sep))/count;
-
-    for (uint32_t i = 0; i < count; ++i)
-    {
-        uint16_t bheight = height*bins[i]/peak;
-        SDL_Rect tgt = {(bwidth+sep)*i, height-bheight, bwidth, bheight};
-        SDL_FillRect(s, &tgt, SDL_MapRGB(s->format, 0,255,0));
-    }
-}
-
-template <typename T>
-void Histogram<T>::clear()
-{
-    for (uint32_t i = 0; i < count; ++i)
-        bins[i] = 0;
-}
+#include "overlay.hpp"
 
 #endif
