@@ -21,11 +21,11 @@ struct Filter {
     uint32_t src;
 };
 
-class MainWin
+class Window
 {
     public:
-        MainWin(VideoDevice &v, uint32_t windows);
-        ~MainWin(void);
+        Window(VideoDevice &v, uint32_t windows);
+        ~Window(void);
         void MainLoop(void);
         void AddFilter(const char *name, FilterFunc f, uint32_t idx, uint32_t src = 0);
         void DrawText(const char *text, SDL_Rect loc, SDL_Color fg, SDL_Color bg);

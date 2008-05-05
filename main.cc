@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
         //TODO: Tied to SDL pixel format definitions
         v->setParams(176, 144, 32, VIDEO_PALETTE_RGB32);
 
-        MainWin win(*v, 14);
+        Window win(*v, 14);
 
         win.AddFilter("Brightness",      linear_contrast, 1, 0);
         win.AddFilter("RGB Histogram",   rgb_hist,        2, 1);

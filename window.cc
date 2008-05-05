@@ -29,7 +29,7 @@ inline SDL_Surface* makeFrame(VideoDevice &v)
     return SDL_CreateRGBSurfaceFrom(px, v.getWidth(), v.getHeight(), v.getDepth(), v.getWidth()*(v.getDepth()>>3), 0x00ff0000, 0x0000ff00, 0x000000ff, 0);
 }
 
-MainWin::MainWin(VideoDevice &_v, uint32_t _windows) : v(_v), windows(_windows+1)
+Window::Window(VideoDevice &_v, uint32_t _windows) : v(_v), windows(_windows+1)
 {
     Context c("When constructing Main Window");
     if (v.getDepth() != 32) // TODO: Not pixel-format generic
@@ -55,7 +55,7 @@ MainWin::MainWin(VideoDevice &_v, uint32_t _windows) : v(_v), windows(_windows+1
         funcs.push_back(Filter(0, makeFrame(v), string(i == 0 ? "source" : "None"), -1));
 }
 
-MainWin::~MainWin(void)
+Window::~Window(void)
 {
     Context c("When Destructing Main Window");
     vector<Filter>::iterator i;
@@ -71,7 +71,7 @@ MainWin::~MainWin(void)
     SDL_Quit();
 }
 
-void MainWin::DrawText(const char *text, SDL_Rect loc, SDL_Color fg, SDL_Color bg)
+void Window::DrawText(const char *text, SDL_Rect loc, SDL_Color fg, SDL_Color bg)
 {
     SDL_Surface *txt = TTF_RenderText_Shaded(font, text, fg, bg);
     if (SDL_BlitSurface(txt, NULL, screen, &loc) != 0)
@@ -79,7 +79,7 @@ void MainWin::DrawText(const char *text, SDL_Rect loc, SDL_Color fg, SDL_Color b
     SDL_FreeSurface(txt);
 }
 
-void MainWin::MainLoop(void)
+void Window::MainLoop(void)
 {
     Context c("When running main loop");
     SDL_Event event;
@@ -177,7 +177,7 @@ void MainWin::MainLoop(void)
     }
 }
 
-void MainWin::ScreenShot(SDL_Surface *s)
+void Window::ScreenShot(SDL_Surface *s)
 {
     Context c("When taking a screenshot");
     for (uint32_t i = 0; i < 50; ++i)
@@ -210,7 +210,7 @@ void MainWin::ScreenShot(SDL_Surface *s)
     throw GeneralError(DEBUG_HERE, "Too many screenshots exist already.");
 }
 
-void MainWin::AddFilter(const char* name, FilterFunc f, uint32_t idx, uint32_t src)
+void Window::AddFilter(const char* name, FilterFunc f, uint32_t idx, uint32_t src)
 {
     Context c(string("When adding a filter named \"") + name + "\" at index " + stringify(uint32_t(idx)) + " with source " + stringify(uint32_t(src)));
     if (idx >= windows)
