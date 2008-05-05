@@ -2,6 +2,7 @@
 #include <string>
 #include <limits>
 #include <algorithm>
+#include <memory>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -19,7 +20,6 @@ using namespace novas0x2a;
 
 int main(int argc, char *argv[])
 {
-    VideoDevice *v = NULL;
     try {
         Context c("When running " PROGRAM " " VERSION);
         if (argc != 2)
@@ -31,10 +31,11 @@ int main(int argc, char *argv[])
 
         // If it's a regular file, create a static file. If it's a character
         // device, assume it's a V4L1 camera.
+        auto_ptr<VideoDevice> v;
         if (S_ISREG(st.st_mode))
-            v = new StaticFile(argv[1]);
-        else if (S_ISCHR(st.st_mode))
-            v = new V4LDevice(argv[1]);
+            v = auto_ptr<VideoDevice>(new StaticFile(argv[1]));
+        else if(S_ISCHR(st.st_mode))
+            v = auto_ptr<VideoDevice>(new V4LDevice(argv[1]));
         else
             throw CommandLineError("Usage: glasses <v4l device or ppm file>");
 
@@ -71,9 +72,6 @@ int main(int argc, char *argv[])
     } catch (const exception &e) {
         cerr << "Exception: " << e.what() << endl;
     }
-
-    if (v)
-        delete v;
 
     return 0;
 }
