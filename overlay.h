@@ -18,7 +18,6 @@ class Overlay
     protected:
         uint32_t width, height;
         SDL_Surface *s;
-
 };
 
 Overlay::Overlay(Pixel *data, const uint32_t width, const uint32_t height) : width(width), height(height)
