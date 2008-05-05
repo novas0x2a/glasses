@@ -11,3 +11,16 @@ library).
 
 For more information on the ppm format, see
 http://en.wikipedia.org/wiki/Portable_pixmap. I'm looking for a P6 type.
+
+I've provided a sample image (doc/happy-input.ppm) that you can try.
+
+Keys:
+
+e) Throw an exception to show off the context manager (try it)
+s) Dump the current screen to shotX.ppm, where X is the lowest unsigned integer
+   for which a shot does not already exist.
+q) Exit
+
+Everything in here is covered by the GPL v2.
+
+Mike Lundy <mike@fluffypenguin.org>
