@@ -20,10 +20,6 @@ s) Dump the current screen to shotX.ppm, where X is the lowest unsigned integer
    for which a shot does not already exist.
 q) Exit
 
-There's a lot left to do. I'm releasing this now because it'll encourage me to
-keep working on it. Right now, filters must be fixed at compile time, and there
-can only be one filter per frame.
-
 Everything in here is covered by the GPL v2.
 
 Mike Lundy <mike@fluffypenguin.org>
