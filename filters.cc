@@ -38,7 +38,7 @@ void blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
         out[y] = in[y] & RGB(0,0,0xff);
 }
 
-// 3-Pixel Radius Blur
+// 3-pixel horizontal blur
 void blur(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     for (uint32_t y = 1; y < height*width-1; ++y)
@@ -46,7 +46,8 @@ void blur(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
 }
 
 // Replace the blue channel with the average of the red and green.
-// This makes the blue channel noise less obvious
+// This makes the blue channel noise less obvious (at the expense of
+// any real blue data)
 void replace_blue(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     for (uint32_t y = 0; y < height*width; ++y)
@@ -121,7 +122,7 @@ void gray(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t heig
         out[i] = RGB(Vd(in[i]), Vd(in[i]), Vd(in[i]));
 }
 
-// Edge-detection
+// (Vertical) Edge-detection
 void edge(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t height)
 {
     double val;
@@ -138,11 +139,13 @@ void colorize(const Pixel *in, Pixel *out, const uint32_t width, const uint32_t 
     static Pixel color[5];
     int32_t idx = 0;
     static bool done = 0;
-    if (!done++)
+    // Cache the colors on the first call
+    if (!done)
     {
         srand(time(NULL));
         for (uint32_t i = 0; i < 5; ++i)
             color[i] = RGB(rand() % 255, rand() % 255, rand() % 255);
+        done++;
     }
     for (uint32_t y = 0; y < height; ++y)
     {

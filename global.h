@@ -6,6 +6,7 @@
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
 
+// The attribute makes it so gcc makes better assumptions about optimization
 typedef unsigned char byte;
 typedef byte Pixel __attribute__((vector_size (4)));
 
