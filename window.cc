@@ -104,6 +104,7 @@ void MainWin::MainLoop(void)
                     switch(event.key.keysym.sym)
                     {
                         case 'q':
+                        case SDLK_ESCAPE:
                             return;
                         case 's':
                             this->ScreenShot(screen);
