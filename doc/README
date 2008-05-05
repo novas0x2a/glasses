@@ -2,4 +2,9 @@ How do you run it? Okay, so.. it's still a little rough. There's no way to
 define filter chains in a config file or something, so you have to change code
 to do so. The filters are in filters.cc, and they are used in main.cc
 
-As for sources, you can either read from a V4L1 character device or a 24bpp
+As for sources, you can either read from a V4L1 character device or a 24bpp ppm
+You can create one by hitting s while glasses is running, or you can create an
+RGB image in gimp/photoshop and save it as a raw ppm. If you create it in the
+gimp, though, make sure you remove the stupid comment that gimp adds to the
+second line (that restriction will go away when I put in a real image-reading
+library).
