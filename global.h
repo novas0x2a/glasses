@@ -19,6 +19,6 @@ inline double Vd(const Pixel &p) {return 0.2989*R(p) + 0.5866*G(p) + 0.1145*B(p)
 
 inline Pixel RGB(byte r, byte g, byte b, byte a = 1) {return (Pixel){b,g,r,a};}
 
-#define FONT "/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf"
+#define FONT "Vera.ttf"
 
 #endif
