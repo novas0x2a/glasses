@@ -93,9 +93,12 @@ void Window::MainLoop(void)
         gettimeofday(&t1, NULL);
         while(unlikely(SDL_PollEvent(&event)))
         {
+            Context c2("When handling an event");
             switch(event.type)
             {
                 case SDL_KEYDOWN:
+                {
+                    Context c3("When handling a keypress");
                     switch(event.key.keysym.sym)
                     {
                         case 'q':
@@ -107,6 +110,9 @@ void Window::MainLoop(void)
                         case 'p':
                             // TODO: HACK. VideoDevice needs a debugString method
                             //cerr << *dynamic_cast<V4LDevice*>(this->v) << endl;
+                            break;
+                        case 'e':
+                            throw GeneralError(DEBUG_HERE, "I'm just here to show what the context looks like!");
                             break;
 
                         case 'b': this->v.setBrightness(this->v.getBrightness() - 1); break;
@@ -124,6 +130,7 @@ void Window::MainLoop(void)
                             break;
                     }
                     break;
+                }
                 case SDL_QUIT:
                     return;
                 default:
