@@ -31,8 +31,7 @@ class VideoDevice
         inline uint32_t getDepth(void)  const {return depth;};
 
     protected:
-        uint32_t width, height;
-        uint32_t depth;
+        uint32_t width, height, depth;
 
     private:
         explicit VideoDevice(const VideoDevice& original);

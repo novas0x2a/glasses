@@ -62,12 +62,17 @@ V4LDevice::V4LDevice(const char *device) : devname(device)
     if ((dev = open(device, O_RDONLY)) < 0)
         throw V4LError(string("Could not open video device ") + device);
 
-    VideoWindow     win = this->getWin();
-    VideoPicture    pic = this->getPic();
+    try {
+        VideoWindow  win = this->getWin();
+        VideoPicture pic = this->getPic();
+        width            = win.width;
+        height           = win.height;
+        depth            = pic.depth;
+    } catch (...) { // clean up dev and rethrow
+        close(dev);
+        throw;
+    }
 
-    width  = win.width;
-    height = win.height;
-    depth  = pic.depth;
 }
 
 V4LDevice::~V4LDevice(void)

@@ -49,6 +49,9 @@ class V4LDevice : public VideoDevice
         void setPic(const VideoPicture&);
 
     private:
+        explicit V4LDevice(const V4LDevice& original);
+        V4LDevice& operator=(const V4LDevice& original);
+
         const std::string devname;
         int dev;
 };
