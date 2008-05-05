@@ -59,6 +59,7 @@ Window::Window(VideoDevice &_v, uint32_t _windows) : v(_v), windows(_windows+1)
 Window::~Window(void)
 {
     Context c("When Destructing Main Window");
+    TTF_CloseFont(font);
     vector<Filter>::iterator i;
     for (i = funcs.begin(); i != funcs.end(); ++i)
     {

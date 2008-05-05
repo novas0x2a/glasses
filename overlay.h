@@ -61,6 +61,7 @@ void Text::draw(const char* str, uint8_t r, uint8_t g, uint8_t b) const
         throw TTFError(string("Text Render failed [") + str + "]");
     if (unlikely(SDL_BlitSurface(txt, NULL, s, NULL)) != 0)
         throw SDLError("Text Blit failed");
+    SDL_FreeSurface(txt);
 }
 
 template <typename T>
