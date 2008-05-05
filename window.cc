@@ -182,6 +182,7 @@ void Window::ScreenShot(SDL_Surface *s)
     Context c("When taking a screenshot");
     for (uint32_t i = 0; i < 50; ++i)
     {
+        // use open and then fdopen so I can use O_EXCL and avoid the race condition
         int fd = open(string("shot" + stringify(i) + ".ppm").c_str(), O_CREAT|O_EXCL|O_WRONLY, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
         if (fd < 0)
         {
