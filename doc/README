@@ -8,3 +8,6 @@ RGB image in gimp/photoshop and save it as a raw ppm. If you create it in the
 gimp, though, make sure you remove the stupid comment that gimp adds to the
 second line (that restriction will go away when I put in a real image-reading
 library).
+
+For more information on the ppm format, see
+http://en.wikipedia.org/wiki/Portable_pixmap. I'm looking for a P6 type.
