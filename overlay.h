@@ -1,11 +1,14 @@
-#ifndef HIST_H
-#define HIST_H
+#ifndef OVERLAY_H
+#define OVERLAY_H
 
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include <string>
 #include "global.h"
 
-using namespace novas0x2a;
+using novas0x2a::SDLError;
+using novas0x2a::TTFError;
+using std::string;
 
 class Overlay
 {

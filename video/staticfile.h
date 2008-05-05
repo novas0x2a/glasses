@@ -1,5 +1,5 @@
-#ifndef STATIC_H
-#define STATIC_H
+#ifndef STATICFILE_H
+#define STATICFILE_H
 
 #include <cerrno>
 #include "videodevice.h"

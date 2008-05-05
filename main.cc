@@ -7,10 +7,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
 #include "global.h"
 #include "window.h"
-#include "overlay.h"
+#include "filters.h"
 
 #include "video/v4l.h"
 #include "video/staticfile.h"

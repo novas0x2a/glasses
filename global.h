@@ -1,9 +1,6 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include <string>
-#include <sstream>
-#include <cmath>
 #include "utils/context.h"
 
 #define likely(x)       __builtin_expect((x),1)
