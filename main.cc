@@ -29,6 +29,8 @@ int main(int argc, char *argv[])
         if (stat(argv[1], &st) < 0)
             throw CommandLineError(string("Couldn't stat file: ") + strerror(errno));
 
+        // If it's a regular file, create a static file. If it's a character
+        // device, assume it's a V4L1 camera.
         if (S_ISREG(st.st_mode))
             v = new StaticFile(argv[1]);
         else if (S_ISCHR(st.st_mode))
@@ -42,19 +44,19 @@ int main(int argc, char *argv[])
         MainWin win(*v, 14);
 
         win.AddFilter("Brightness",      linear_contrast, 1, 0);
-        win.AddFilter("RGB Histogram",   rgb_hist,      2, 1);
-        win.AddFilter("Inverter",        invert,        3, 1);
-        win.AddFilter("Counter",         frame_counter, 4, 1);
-        win.AddFilter("Grayscale",       gray,          5, 1);
-        win.AddFilter("Edge detect",     edge,          6, 5);
-        win.AddFilter("Colorize",        colorize,      7, 6);
+        win.AddFilter("RGB Histogram",   rgb_hist,        2, 1);
+        win.AddFilter("Inverter",        invert,          3, 1);
+        win.AddFilter("Counter",         frame_counter,   4, 1);
+        win.AddFilter("Grayscale",       gray,            5, 1);
+        win.AddFilter("Edge detect",     edge,            6, 5);
+        win.AddFilter("Colorize",        colorize,        7, 6);
 
-        win.AddFilter("Red Channel",     red,           8, 1);
-        win.AddFilter("Green Channel",   green,         9, 1);
-        win.AddFilter("Blue Channel",    blue,         10, 1);
-        win.AddFilter("Cyan Channel",    invert,       12, 8);
-        win.AddFilter("Magenta Channel", invert,       13, 9);
-        win.AddFilter("Yellow Channel",  invert,       14, 10);
+        win.AddFilter("Red Channel",     red,             8, 1);
+        win.AddFilter("Green Channel",   green,           9, 1);
+        win.AddFilter("Blue Channel",    blue,           10, 1);
+        win.AddFilter("Cyan Channel",    invert,         12, 8);
+        win.AddFilter("Magenta Channel", invert,         13, 9);
+        win.AddFilter("Yellow Channel",  invert,         14, 10);
 
         win.MainLoop();
 
@@ -68,8 +70,6 @@ int main(int argc, char *argv[])
             << endl;
     } catch (const exception &e) {
         cerr << "Exception: " << e.what() << endl;
-    } catch (...) {
-        cerr << "Ack. Really unhandled exception." << endl;
     }
 
     if (v)
