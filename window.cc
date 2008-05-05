@@ -52,7 +52,8 @@ Window::Window(VideoDevice &_v, uint32_t _windows) : v(_v), windows(_windows+1)
         throw TTFError("Could not load font");
 
     for (uint16_t i = 0; i < windows; ++i)
-        funcs.push_back(Filter(0, makeFrame(v), string(i == 0 ? "source" : "None"), -1));
+        funcs.push_back(Filter(0, NULL, string(i == 0 ? "source" : "None"), -1));
+    funcs[0].frame = makeFrame(v);
 }
 
 Window::~Window(void)
@@ -85,13 +86,6 @@ void Window::MainLoop(void)
     SDL_Event event;
     struct timeval t1, t2 = {0,0};
     RunningAverage<uint32_t> avg(10);
-
-    // Before we trust the filters, do a basic sanity check
-    vector<Filter>::const_iterator i;
-    size_t idx;
-    for (idx = 0, i = funcs.begin(); i != funcs.end(); ++idx, ++i)
-        if (!i->frame)
-            throw ArgumentError("Framebuffer for filter \"" + i->name + "\" (idx " + stringify(idx) + ") doesn't exist");
 
     while (1)
     {
@@ -155,9 +149,17 @@ void Window::MainLoop(void)
                     r_tmp.x *= v.getWidth();
                     r_tmp.y *= v.getHeight();
                 }
-                // r == NULL the first time through, which is what i want for funcs[0], the source image
-                if (unlikely(SDL_BlitSurface(i->frame, NULL, screen, r) != 0))
-                    throw SDLError("Blit failed");
+                if (likely(i->frame != NULL))
+                {
+                    // r == NULL the first time through, which is what i want for funcs[0], the source image
+                    if (unlikely(SDL_BlitSurface(i->frame, NULL, screen, r) != 0))
+                        throw SDLError("Blit failed");
+                }
+                else
+                {
+                    if (unlikely(SDL_FillRect(screen, r, 0) != 0))
+                        throw SDLError("FillRect failed");
+                }
             }
         }
 
@@ -214,8 +216,8 @@ void Window::ScreenShot(SDL_Surface *s)
 void Window::AddFilter(const char* name, FilterFunc f, uint32_t idx, uint32_t src)
 {
     Context c(string("When adding a filter named \"") + name + "\" at index " + stringify(uint32_t(idx)) + " with source " + stringify(uint32_t(src)));
-    if (idx >= windows)
-        throw ArgumentError("Illegal filter index (max index is " + stringify(windows-1) + ")");
+    if (idx == 0 || idx >= windows)
+        throw ArgumentError("Illegal filter index (range is 1:" + stringify(windows-1) + " inclusive)");
     if (src >= windows)
         throw ArgumentError("Illegal source index (max index is " + stringify(windows-1) + ")");
     if (!funcs[src].frame)
