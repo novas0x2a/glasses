@@ -112,7 +112,7 @@ void frame_counter(const Pixel *in, Pixel *out, const uint32_t width, const uint
     static Text txt(out, width, height, FONT, 20);
     static uint32_t i = 0;
     memcpy(out, in, width * height * sizeof(Pixel));
-    txt.draw(stringify(i++).c_str(), 0xff, 0xff, 0);
+    txt.draw(stringify(i++).c_str(), RGB(0xff, 0xff, 0));
 }
 
 // Greyscale (NTSC)

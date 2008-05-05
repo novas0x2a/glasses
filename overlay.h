@@ -10,6 +10,7 @@ using novas0x2a::SDLError;
 using novas0x2a::TTFError;
 using std::string;
 
+// Base class for overlays; handles creating and destroying the sdl surface
 class Overlay
 {
     public:
@@ -18,61 +19,66 @@ class Overlay
     protected:
         uint32_t width, height;
         SDL_Surface *s;
+    private:
+        explicit Overlay(const Overlay&);
+        Overlay& operator=(const Overlay& original);
 };
 
-Overlay::Overlay(Pixel *data, const uint32_t width, const uint32_t height) : width(width), height(height)
-{
-    s = SDL_CreateRGBSurfaceFrom((char*)data, width, height, 32, width*4, 0x00ff0000, 0x0000ff00, 0x000000ff, 0);
-    if (!s)
-        throw SDLError("Could not create overlay surface");
-}
-
-Overlay::~Overlay()
-{
-    SDL_FreeSurface(s);
-}
-
+// Text overlay. Puts a string in the upper left
+// TODO: needs a setLocation
 class Text : public Overlay
 {
     public:
+        /**
+         * Text overlay
+         * @param data      pixel array to write to
+         * @param width     width of a row of pixels (in pixels)
+         * @param height    height of a row of pixels (in pixels)
+         * @param font      path to a TTF font
+         * @param size      size of font in points
+         */
         Text(Pixel *data, const uint32_t width, const uint32_t height, const char *font, const uint32_t size);
         ~Text();
-        void draw(const char* str, uint8_t r = 0, uint8_t g = 0, uint8_t b = 0) const;
+        /**
+         * Overlay a string
+         * @param str       The string
+         * @param color     The text color
+         */
+        void draw(const char* str, Pixel color) const;
     private:
         TTF_Font *font;
 };
 
-Text::Text(Pixel *data, const uint32_t width, const uint32_t height, const char *font, const uint32_t size) : Overlay(data, width, height)
-{
-    this->font = TTF_OpenFont(font, size);
-    if (!this->font)
-        throw TTFError("Could not open font");
-}
-
-Text::~Text()
-{
-    TTF_CloseFont(font);
-}
-
-void Text::draw(const char* str, uint8_t r, uint8_t g, uint8_t b) const
-{
-    SDL_Surface *txt = TTF_RenderText_Solid(font, str, (SDL_Color){r,g,b,0});
-    if (unlikely(!txt))
-        throw TTFError(string("Text Render failed [") + str + "]");
-    if (unlikely(SDL_BlitSurface(txt, NULL, s, NULL)) != 0)
-        throw SDLError("Text Blit failed");
-    SDL_FreeSurface(txt);
-}
-
+// Histogram. Use template parameter to choose type for precision or speed
 template <typename T>
 class Histogram : public Overlay
 {
     public:
+        /**
+         * Histogram overlay
+         * @param data      pixel array to write to
+         * @param width     width of a row of pixels (in pixels)
+         * @param height    height of a row of pixels (in pixels)
+         * @param count     number of bins
+         */
         Histogram(Pixel *data, const uint32_t width, const uint32_t height, const uint32_t count);
         ~Histogram();
+
+        /**
+         * Draws the overlay onto the surface
+         * @param peak  Defines the 100% point. 0 (default) means remember the max and use that
+         */
         void draw(T peak = 0) const;
-        //TODO: void setAnchor
+
+        /**
+         * Empties the bins
+         */
         void clear();
+
+        /**
+         * Access the bins by index. THERE IS NO BOUNDS-CHECKING.
+         * @param i bin index
+         */
         const T& operator[] (unsigned i) const;
         T& operator[] (unsigned i);
     private:
